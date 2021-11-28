@@ -1,0 +1,67 @@
+#!/bin/sh
+
+GENTLE=$HOME/gentle-97/gentle/gentle
+REFLEX=$HOME/gentle-97/reflex/reflex
+BISON=bison
+FLEX=flex
+CC=gcc
+
+set -e
+set -x
+
+# Gentle
+
+$GENTLE bnf.g
+$GENTLE encode.g
+$GENTLE code.g
+$GENTLE flatten.g
+$GENTLE lexinfo.g
+$GENTLE verbose.g
+$GENTLE actions.g
+
+# Flex & Bison
+
+$REFLEX
+$FLEX gen.l
+$BISON gen.y
+
+mv gen.tab.c yytab.c
+mv lex.yy.c yylex.c
+
+# Compile generated C files
+
+$CC -c bnf.c
+$CC -c encode.c
+$CC -c code.c
+$CC -c flatten.c
+$CC -c lexinfo.c
+$CC -c verbose.c
+$CC -c actions.c
+$CC -c  yytab.c
+$CC -c  yylex.c
+
+# Compile hand-written C files
+
+$CC -c sets.c
+$CC -c ana.c
+$CC -c auxil.c
+$CC -c main.c
+$CC -c output.c
+$CC -c idents.c
+$CC -c errmsg.c
+$CC -c strings.c
+$CC -c grts.c
+
+# Link
+
+$CC \
+   yytab.o yylex.o \
+   bnf.o encode.o code.o flatten.o lexinfo.o verbose.o actions.o \
+   sets.o ana.o auxil.o \
+   main.o \
+   output.o \
+   idents.o \
+   errmsg.o \
+   strings.o \
+   grts.o \
+   -o accent

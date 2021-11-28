@@ -1,0 +1,30 @@
+%token NUMBER;
+root :
+   expression
+|  null
+;
+
+null :
+;
+
+expression :
+  term<n> { printf("%d\n", n); }
+;
+
+term<n> :
+  term<x> '+' factor<y> { *n = x+y; }
+| term<x> '-' factor<y> { *n = x-y; }
+| factor<n>
+;
+
+factor<n> :
+  factor<x> '*' primary<y> { *n = x*y; }
+| factor<x> '/' primary<y> { *n = x/y; }
+| primary<n>
+;
+
+primary<n> :
+  NUMBER<n>
+| '(' term<n> ')'
+| '-' primary<x> { *n = -x;}
+;

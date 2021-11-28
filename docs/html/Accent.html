@@ -1,0 +1,1955 @@
+<html>
+<head>
+</head>
+<body>
+
+<tt>compilertools.net, Technical Report, 2000, Second Edition 2006</tt>
+
+<h1>ACCENT,<br>
+A Compiler Compiler for the<br>
+Entire Class of Context-free Grammars</h1>
+<p>
+<i>Friedrich Wilhelm Schr&ouml;er</i><br>
+Fraunhofer Institute for Computer Architecture and Software Technology<br>
+<tt>f.w.schroeer@first.fraunhofer.de</tt>
+<p>
+<h1>Contents</h1>
+
+<a href="#intro">Introduction</a><br>
+<a href="#languages">How to Describe Languages</a><br>
+<a href="#meaning">How to Assign Meaning</a><br>
+<a href="#ambiguities">How to Resolve Ambiguities</a><br>
+<a href="#abbreviate">How to Abbreviate Specifications</a><br>
+<a href="#lexer">How to Prepare the Lexer</a><br>
+<a href="#generate">How to Generate a Language Processor</a><br>
+<a href="#notation">Appendix: The Accent Grammar Notation</a><br>
+
+<!------------------------------------------------------------------------------
+SECTION 1: Introduction
+------------------------------------------------------------------------------!>
+<h1><a name="intro">Introduction</a></h1>
+
+<h3>Compiler Compilers</h3>
+
+Compiler compilers like Yacc or Accent
+are used to generate language processors (such as compilers,
+translators, or interpreters) from high-level descriptions.
+You specify the grammar of your language,
+and the compiler compiler creates a program that processes
+input text written in your language.
+This program hierarchically decomposes the input text into phrases.
+For each kind of phrase you can attach semantic actions to your grammar
+which are elaborated when the corresponding phrase is processed.
+
+<h3>Yacc and Other Compiler Compilers</h3>
+
+Compiler compilers like Yacc are based on the LALR approach.
+This results in very efficient parsers and covers a large range
+of grammars. But unfortunately a user has to be familiar with
+this technique when his or her grammar does not fulfill
+its restrictions.
+When confronted with "shift/reduce" or "reduce/reduce" conflicts
+(that indicate a violation of the LALR property) the user
+has to adapt the grammar. This often requires an insight into the working
+of the parser and in many cases complicates the description of
+the language.
+<p>
+Other systems use LL parsing. Conflicts that are reported by an
+LL generator have a more intuitive interpretation than LALR conflicts.
+On the other hand, these systems are even more restrictive. For example,
+the natural grammar for arithmetic expressions cannot be used
+because the approach cannot deal with left-recursive rules.
+<p>
+In both cases the design of the grammar is influenced by the
+parser implementation technique.
+<p>
+This can be avoided with Accent.
+
+<h3>The Accent Compiler Compiler</h3>
+
+Accent does not rely on specific subclasses of context-free grammars.
+A user does not have to be familiar with parsing technology.
+<p>
+Accent can be used like Yacc. It also cooperates with Lex.
+The specification language of Accent is similar to that of Yacc,
+but Accent uses symbolic names for attributes instead of Yacc's error-prone
+numbers.
+It allows you to write your grammar in the Extended-Backus-Naur-Form,
+in which you can specify repetition, choices, and optional parts without
+introducing special rules for this purpose.
+In Accent, semantic actions can be inserted anywhere, there are no restrictions
+caused by the parser implementation.
+<p>
+Accent even allows ambiguous grammars. Ambiguities are resolved
+automatically following a default strategy or according to annotations
+specified by the user.
+
+<!------------------------------------------------------------------------------
+SECTION 2: Languages
+------------------------------------------------------------------------------!>
+<h1><a name="languages">How to Describe Languages</a></h1>
+
+<h3>Grammars</h3>
+
+The user describes the language by providing a grammar.
+Such a grammar is given by rules.
+<p>
+A rule describes how to build a particular construct of the language.
+This is done by listing one or more alternatives
+how to build the construct from constituents.
+<p>
+For example, if we define a programming language, we can express the
+fact that a <tt>program</tt> is constructed from a <tt>declaration_part</tt>
+and a <tt>statement_part</tt>
+by the rule
+<pre>
+   program : declaration_part statement_part ;
+</pre>
+A rule has a left hand side that names the construct defined by the rule.
+A colon  ("<tt>:</tt>") separates the left hand side from the right hand side.
+The right hand side specifies how to build the construct.
+A semicolon ("<tt>;</tt>") terminates the rule.
+<p>
+The name on the left hand side is called a nonterminal.
+A nonterminal may be used in right hand sides to specify constituents.
+The possible representations defined by a nonterminial are called
+the phrases of the nonterminal.
+<p>
+The rule above says that phrases for <tt>program</tt> are
+composed from a phrase for <tt>declaration_part</tt> followed by a phrase
+for <tt>statement_part</tt>.
+<p>
+A rule may provide more than one alternative.
+Here is a specification of the nonterminal <tt>statement</tt>:
+<pre>
+   statement :
+      variable '=' expression
+   |  IF expression THEN statement ELSE statement
+   |  WHILE expression DO statement
+   |  BEGIN statement_seq END
+   ;
+</pre>
+It describes four alternatives how to construct a statement.
+Alternatives are separated by a bar ("<tt>|</tt>").
+<p>
+The nonterminal that is defined by the first rule of the grammar
+is called the start symbol.
+The phrases of the start symbol constitute the language defined by the grammar.
+<p>
+Grammars of this kind are called context-free grammars.
+Accent can process all context-free grammars without restriction.
+
+<h3>Lexical Elements</h3>
+
+Nonterminal symbols are defined by rules.
+There are also elementary items
+called terminal symbols or tokens.
+<p>
+They may be given literally, if they are represented by a single character.
+For example, the <tt>'='</tt> element in the first alternative for 
+<tt>statement</tt> stands for the character "<tt>=</tt>".
+<p>
+They may also be referred by a symbolic name such as <tt>IF</tt>
+in the second alternative for <tt>statement</tt>.
+In our language an <tt>IF</tt> symbol could be represented by
+the two character string "<tt>if</tt>".
+Such a mapping from strings to tokens is not defined
+by the Accent specification.
+In Accent, one just introduces symbolic names that are used for terminal
+symbols.
+<p>
+For example,
+<pre>
+   %token IF, THEN, ELSE, WHILE, DO, BEGIN, END;
+</pre>
+introduces names for the tokens in the rule for <tt>statement</tt>.
+<p>
+The declaration precedes the first rule of the grammar.
+<p>
+The actual representation is given by rules for a further tool:
+The generator Lex can be used to create a lexical analyzer
+that partitions the input text into tokens. A specification for Lex
+is a list of lexical rules.
+<p>
+A lexical rule states a pattern (a regular expression) that matches the token
+and an action that is carried out when the token is recognized.
+Here is are two example rules:
+<pre>
+   "="  { return '='; }
+   "if" { return IF;  }
+</pre>
+If "<tt>=</tt>" is recognized then the code of the character <tt>'='</tt>
+is returned as an indicator.
+If "<tt>if</tt>" is recognized then the value of the constant <tt>IF</tt>
+is returned.
+<p>
+A token may have a more complex structure. An example is the token
+<tt>NUMBER</tt> which represents a sequence of digits.
+This can be specified by a Lex rule like this:
+<pre>
+[0-9]+ { return NUMBER; }
+</pre>
+A string that matches the pattern <tt>[0-9]+</tt>
+(i.e. a sequence of digits) is indicated as a <tt>NUMBER</tt>.
+<p>
+The lexical analyzer (described in the Lex specification)
+structures the input into a sequence of tokens.
+The syntactical analyzer (described in the Accent specification)
+hierarchically structures this sequence into phrases.
+<p>
+An item is specified as token if it has a fixed representation
+such as "<tt>=</tt>" or "<tt>if</tt>"
+or if it can be defined by a simple expression such as the pattern
+for <tt>NUMBER</tt>.
+In many cases tokens are those items that can be separated
+by additional white space.
+A Lex rule can specify to skip white space so that it can be ignored
+in the syntactical grammar.
+<p>
+The Lex rule
+<pre>
+   " " { /* skip blank */ }
+</pre>
+skips blanks by not returning a token indicator.
+
+<h3>A Grammar for Expressions</h3>
+We now present a simple but complete example:
+a grammar for expressions like
+<pre>
+   10+20*30
+</pre>
+Here is the Accent specification:
+<pre>
+   01  %token NUMBER;
+   02  
+   03  expression :
+   04    term
+   05  ;
+   06  
+   07  term :
+   08    term '+' factor
+   10  | term '-' factor
+   11  | factor
+   12  ;
+   13  
+   14  factor :
+   15    factor '*' primary
+   16  | factor '/' primary
+   17  | primary
+   18  ;
+   19  
+   20  primary :
+   21    NUMBER
+   22  | '(' term ')'
+   23  | '-' primary
+   24  ;
+</pre>
+These rules not only define what constitutes a valid expression
+but also give it structure.
+The different nonterminals reflect the binding strength of the operators.
+The operators of a factor ("<tt>*</tt>" and "<tt>/</tt>")
+have a stronger binding than the
+operators of a term ("<tt>+</tt>" and "<tt>-</tt>")
+because <tt>factor</tt> is a constituent of a <tt>term</tt>
+(a <tt>term</tt> appearing inside a <tt>factor</tt> must be enclosed in
+parentheses).
+<p>
+For example, the input
+<pre>
+   10+20*30
+</pre>
+is structured as follows:
+<pre>
+   expression
+   |
+   +-term
+     |
+     +-term
+     | |
+     | +- factor
+     |    |
+     |    +-primary
+     |      |
+     |      +-NUMBER
+     |
+     +-'+'
+     |
+     +-factor
+       |
+       +-factor
+       | |
+       | +-primary
+       |   |
+       |   +-NUMBER
+       |
+       +-'*'
+       |
+       +-primary
+	 |
+         +-NUMBER
+</pre>
+or more precisely
+(this representation, generated with Accent, specifies which alternative
+has been chosen and lists in curly braces the constituents):
+<pre>
+   expression alternative at line 4, col 6 of grammar {
+     term alternative at line 8, col 6 of grammar {
+       term alternative at line 10, col 8 of grammar {
+         factor alternative at line 16, col 9 of grammar {
+           primary alternative at line 20, col 8 of grammar {
+             NUMBER
+           }
+         }
+       }
+       '+'
+       factor alternative at line 14, col 8 of grammar {
+         factor alternative at line 16, col 9 of grammar {
+           primary alternative at line 20, col 8 of grammar {
+             NUMBER
+           }
+         }
+         '*'
+         primary alternative at line 20, col 8 of grammar {
+           NUMBER
+         }
+       }
+     }
+   }
+</pre>
+The tree above indicates that
+<pre>
+   10+20*30
+</pre>
+is structured as
+<pre>
+   10+(20*30)
+</pre>
+and not as
+<pre>
+   (10+20)*30
+</pre>
+
+Here is the Lex specification for the expression grammar:
+<pre>
+   %{
+   #include "yygrammar.h"
+   %}
+   %%
+   "+"    { return '+'; }
+   "-"    { return '-'; }
+   "*"    { return '*'; }
+   "/"    { return '/'; }
+   [0-9]+ { return NUMBER; }
+   " "    { /* skip blank */ }
+   \n     { /* skip newline */ }
+   .      { yyerror("illegal token"); }
+</pre>
+
+(The file <tt>yygrammar.h</tt>, which is included in the header of the
+Lex specification, is generated by Accent and contains the definition of
+the constant <tt>NUMBER</tt>.)
+
+<!------------------------------------------------------------------------------
+SECTION 3: Meaning
+------------------------------------------------------------------------------!>
+<h1><a name="meaning">How to Assign Meaning</a></h1>
+
+<h3>Semantic Actions</h3>
+
+From the above grammar Accent generates a program that analyzes its
+input syntactically: it rejects all texts that do not conform to the grammar.
+<p>
+In order to process the input semantically we have
+to specify semantic actions.
+These actions may be embedded into the grammar at arbitrary positions.
+They are executed when the particular alternative is processed.
+The members of a selected alternative are processed from left to right.
+<p>
+A semantic action is arbitrary C code inclosed in curly braces.
+The text (without the braces) is copied verbatim into the generated
+program.
+<p>
+Here is an example
+<pre>
+   N:
+      { printf("1\n"); } A { printf("2\n"); } B { printf("3\n"); }
+   |  { printf("x\n"); } C { printf("y\n"); }
+   ;
+
+   A: 'a' { printf("inside A\n"}; };
+   B: 'b' { printf("inside B\n"}; };
+   C: 'c' { printf("inside C\n"}; };
+</pre>
+For the input
+<pre>
+   a b
+</pre>
+the generated program produces the output
+<pre>
+   1
+   inside A
+   2
+   inside B
+   3
+</pre>
+For each nonterminal Accent generates a tree walker function.
+Here is the code generated for <tt>N</tt>
+(slightly edited and without <tt>#line</tt> pragmas for C preprocessor):
+<pre>
+   N ()
+   {
+      switch(yyselect()) {
+      case 1:
+	 {
+	    printf("1\n"); 
+	    A();
+	    printf("2\n"); 
+	    B();
+	    printf("3\n"); 
+	 }
+	 break;
+      case 2:
+	 {
+	    printf("x\n"); 
+	    C();
+	    printf("y\n"); 
+	 }
+	 break;
+      }
+   }
+</pre>
+
+<h3>Attributes of Nonterminals</h3>
+
+Like functions in C, nonterminal can have parameters.
+Parameters may be of mode <tt>in</tt> or <tt>out</tt>.
+<tt>in</tt> parameters are used to pass information from the context
+to a particular nonterminal (often called inherited attributes).
+<tt>out</tt> parameters pass information from a nonterminal to its context
+(often called synthesized attributes).
+
+At the left hand side of rule the name of
+the nonterminal is followed by a signature that specifies mode, type,
+and name of parameters.
+The signature is enclosed in the braces
+"<tt>&lt;</tt>" and "<tt>&gt;</tt>".
+<p>
+For example
+<pre>
+   N < %in int context, %out int result > : ... ;
+</pre>
+<tt>N</tt> has an input parameter <tt>context</tt> and an output parameter
+<tt>result</tt>, both are of type <tt>int</tt>.
+<p>
+If a nonterminal appears on the right hand side, actual parameters
+follow the nonterminal name, enclosed in
+"<tt>&lt;</tt>" and "<tt>&gt;</tt>".
+<p>
+For example
+<pre>
+   N&lt;actual_context, actual_result&gt;
+</pre>
+Parameters can be accessed inside semantic actions.
+The values of input parameters must be defined inside semantic actions
+or be the output of other members.
+<p>
+For example
+<pre>
+   demo :
+      { actual_context = 10; }
+      N&lt;actual_context, actual_result&gt;
+      { printf("%d\n", actual_result); }
+   ;
+</pre>
+An alternative for a nonterminal must define its output parameters,
+either by using them as output parameters for  members
+or by assigning a value inside a semantic action.
+If an output parameter of the left hand side (a formal output parameter)
+is used inside a semantic action, it must be dereferenced with the "<tt>*</tt>"
+operator (output parameters are passed by reference to the generated
+tree walker function).
+<p>
+For example
+<pre>
+   N<%in int context, %out int result> : { *result = context+1; } ;
+</pre>
+An elaboration of <tt>demo</tt> prints <tt>11</tt>.
+<p>
+Here are the generated functions:
+<pre>
+demo ()
+{
+   int actual_context;
+   int actual_result;
+
+   switch(yyselect()) {
+   case 1:
+      {
+	 actual_context = 10; 
+	 N(actual_context, &actual_result);
+	 printf("%d\n", actual_result); 
+      }
+      break;
+   }
+}
+
+N (context, result)
+   int context;
+   int *result;
+{
+   switch(yyselect()) {
+   case 2:
+      {
+         *result = context+1; 
+      }
+      break;
+   }
+}
+</pre>
+As you see, identifiers that appear as parameters of nonterminals
+are automatically declared.
+<p>
+Formal parameters, if present, are specified in the form
+<pre>
+   < %in parameter_specifications %out parameter_specifications >
+</pre>
+where either the <tt>%in</tt> group or the <tt>%out</tt> group may be omitted.
+<p>
+The most frequent case, where we have only output parameters,
+can simply be written without a mode indicator:
+<pre>
+   < parameter_specifications >
+</pre>
+<tt>parameter_specifications</tt> is a list of the form
+<pre>
+   Type_1 Name_1 , ... , Type_n Name_n
+</pre>
+The type may be omitted.
+In this case the special type <tt>YYSTYPE</tt> is assumed.
+This may be defined by the user as a macro.
+If there is no user specific definition <tt>YYSTYPE</tt>
+stands for <tt>long</tt>.
+<p>
+Hence in most cases a left hand side of a rule simply looks like this:
+<pre>
+   Block&lt;b&gt; : ... 
+</pre>
+
+<h3>Attributes of Tokens</h3>
+
+All items declared as tokens have an output parameter of type
+<tt>YYSTYPE</tt>. If a token is used on the right hand side of a rule,
+an actual parameter may be specified to access the attribute value of
+the token which is computed by the scanner.
+<p>
+For example
+<pre>
+    Value :
+       NUMBER&lt;n&gt; { printf("%d\n", n); }
+    ;  
+</pre>
+Here <tt>n</tt> represents the numeric value of <tt>NUMBER</tt>.
+It can be used in the semantic action.
+<p>
+The attribute value of a token must be computed in the semantic action
+of the Lex rule for the token. It must be assigned to the special
+variable <tt>yylval</tt> which is of type <tt>YYSTYPE</tt>.
+<p>
+For example if we want to access the value of a <tt>NUMBER</tt>
+the corresponding Lex could be
+<pre>
+   [0-9]+ { yylval = atoi(yytext); return NUMBER; }
+</pre>
+The special variable <tt>yytext</tt> holds the string that matched the
+pattern. The C function <tt>atoi</tt> converts it into a integer.
+
+<h3>Global Prelude</h3>
+
+If <tt>YYSTYPE</tt> is defined by the user,
+it should be declared in an <tt>include</tt> file,
+because it is used in the grammar as well as in the Lex specification.
+<p>
+<tt>#include</tt> statements can be placed in the global prelude part
+at the beginning of the grammar file.
+Text which is enclosed by
+<pre>
+   %prelude {
+</pre>
+and
+<pre>
+   }
+</pre>
+is copied verbatim into the generated program.
+<p>
+For example
+<pre>
+   %prelude {
+   #include "yystype.h"
+   }
+</pre>
+
+<h3>Rule Prelude</h3>
+
+Identifiers that are used as attributes need not be declared.
+One may use semantic actions to declare additional variables
+(the curly braces surrounding a semantic do not appear in the generated code).
+<p>
+For example
+<pre>
+   demo :
+      {int i = 0;} alternative_1 ;
+   |  alternative_2
+   ;
+</pre>
+Such variables are local to the alternative.
+<tt>i</tt> is visible in the sematic action of <tt>alternative_1</tt>
+but not in those of <tt>alternative_2</tt>
+<p>
+Variables that are visible to all alternatives (but local to the rule)
+can be declare in rule prelude
+which has the same form as the global prelude but appears before
+the alternative list of a rule.
+<p>
+For example
+<pre>
+   demo :
+      %prelude {int i = 0;}
+      alternative_1
+   |  alternative_2
+   ;
+</pre>
+<tt>i</tt> is visible in the sematic actions of both alternatives.
+<p>
+The rule prelude can also be used to provide code that should be execute
+as initialization for all alternatives.
+
+<h3>A Calculator</h3>
+
+We are now ready to turn the expression grammar into a calculator.
+<p>
+For this purpose nonterminals get an output parameter that holds the
+numerical value of the phrase represented by the nonterminal.
+This value is compute from the numerical values of the constituents.
+<p>
+For example, in the left hand side
+<pre>
+   term&lt;n&gt; :
+</pre>
+<tt>term</tt> gets an attribute <tt>n</tt>.
+<p>
+In the right hand side
+<pre>
+     term&lt;x&gt; '+' factor&lt;y&gt; { *n = x+y; }
+</pre>
+the nonterminal <tt>term</tt> gets an attribute <tt>x</tt>
+and the nonterminal <tt>factor</tt> gets an attribute <tt>y</tt>.
+The attribute of the left hand side is the computed as the sum
+of <tt>x</tt> and <tt>y</tt>.
+<p>
+Here is the complete grammar:
+<pre>
+   %token NUMBER;
+
+   expression :
+     term&lt;n&gt; { printf("%d\n", n); }
+   ;
+
+   term&lt;n&gt; :
+     term&lt;x&gt; '+' factor&lt;y&gt; { *n = x+y; }
+   | term&lt;x&gt; '-' factor&lt;y&gt; { *n = x-y; }
+   | factor&lt;n&gt;
+   ;
+
+   factor&lt;n&gt; :
+     factor&lt;x&gt; '*' primary&lt;y&gt; { *n = x*y; }
+   | factor&lt;x&gt; '/' primary&lt;y&gt; { *n = x/y; }
+   | primary&lt;n&gt;
+   ;
+
+   primary&lt;n&gt; :
+     NUMBER&lt;n&gt;
+   | '(' term&lt;n&gt; ')'
+   | '-' primary&lt;x&gt; { *n = -x; }
+   ;
+</pre>
+
+<!------------------------------------------------------------------------------
+SECTION 4: Abbreviate
+------------------------------------------------------------------------------!>
+<h1><a name="ambiguities">How to Resolve Ambiguities</a></h1>
+
+Accent can process all context-free grammars without any restrictions; 
+this also includes ambiguous grammars.
+<p>
+A grammar is said to be ambiguous if there are cases where
+the same text can be processed in different ways.
+This sections describes how Accent resolves such ambiguities
+and how the user can control this by annotations.
+<p>
+We distinguish two classes of ambiguities that we call
+<i>disjunctive</i> and <i>conjunctive</i> ambiguities.
+
+<p>
+<h3> Disjunctive Ambiguities</h3>
+In case of disjunctive ambiguities the same piece of text can be processed
+by different alternative of the same nonterminal.
+<p>
+For example, consider:
+<pre>
+M:
+   A
+|
+   B
+;
+
+A:
+   "x" { printf("a\n"); }
+;
+
+B:
+   "x" { printf("b\n"); }
+;
+</pre>
+The input "<tt>x</tt>"
+can either produce the output "<tt>a</tt>"
+or the output "<tt>b</tt>".
+This is because both alternatives for <tt>M</tt>
+(<tt>A</tt> and <tt>B</tt>) can be applied.
+If more than one alternative can be applied, Accent selects the last one.
+I.e., in the example <tt>B</tt> is selected and "<tt>b</tt> is printed.
+<p>
+The user can control the selection of alternatives by providing annotations.
+Each alternatives has a certain priority. In case of conflicts an alternative
+with a higher priority is selected. The default priority of an alternative
+is its number if we count the alternatives starting with 1.
+A priority can be explicitely defined by
+an annotaion
+<pre>
+    %prio N
+</pre>
+at the end of the alternative. <tt>N</tt> is the priority of the alternative.
+<p>
+For example, in
+<pre>
+M:
+   A %prio 2
+|
+   B %prio 1
+;
+</pre>
+the first alternative gets a higher priority than the second one
+and will be selected in cases of conflicts.
+
+<h3>Conjunctive Ambiguities</h3>
+In case of disjunctive ambiguities the same piece of text can be split
+in differents ways to match the members of a single alternative.
+<p>
+For example, consider:
+<pre>
+M:
+   A B
+;
+
+A:
+   'x' { printf("short A\n"); }
+|
+   'x' 'x' { printf("long A\n"); }
+;
+B:
+   'x' { printf("short B\n"); }
+|
+   'x' 'x' { printf("long B\n"); }
+;
+</pre>
+The input <tt>x x x</tt> can be split in two different ways
+to match the right hand side of <tt>M</tt>:
+a single <tt>x</tt> recognized as <tt>A</tt>
+followed by a pair of <tt>x</tt>'s recognized as <tt>B</tt>,
+or a pair of <tt>x</tt>'s recognized as <tt>A</tt>
+followed by a single <tt>x</tt> recognized as <tt>B</tt>.
+In the first case the output is
+<pre>
+   short A
+   long B
+</pre>
+in the second case it is
+<pre>
+   long A
+   short B
+</pre>
+Accent resolves such an ambiguity by preferring the short version
+of the last member (here <tt>B</tt> that contributes to such a conflict.
+Hence the second interpretation is chosen.
+<p>
+However, the user can select a different choice:
+A <tt>%short</tt> or a <tt>%long</tt> annotation can precede the member.
+<p>
+The definition
+<pre>
+M:
+   A %short B
+;
+</pre>
+results in 
+<pre>
+   long A
+   short B
+</pre>
+whereas the definition
+<pre>
+M:
+   A %short B
+;
+</pre>
+results in 
+<pre>
+   short A
+   long B
+</pre>
+<h3>Ambiguity Handling without Defaults</h3>
+<p>
+Default ambiguity handling can be switched off by the option
+<pre>
+    %nodefault
+</pre>
+preceeding a group of rules.
+This option remains in effect until the end of the grammar or until an option
+<pre>
+    %default
+</pre>
+preceedes a group of rules that again is processed with default ambiguity
+handling.
+<p>
+If default ambiguity handling is switched off,
+an ambigouos input that is not covered by annotations
+causes a run time message
+that explains the different interpretations
+and gives advice how to
+to resolve the ambiguity.
+<p>
+A companion tool, the <i>Amber</i> Ambiguity Checker, analizes the grammar
+statically.
+
+<!------------------------------------------------------------------------------
+SECTION 5: Abbreviate
+------------------------------------------------------------------------------!>
+<h1><a name="abbreviate">How to Abbreviate Specifications</a></h1>
+
+<h3>Extended Backus Naur Form</h3>
+
+So far we have only considered grammars where members of alternatives
+are nonterminal and terminal symbols. A formalism of this kind
+was used in the Algol 60 report and named after the editors
+of that document: Backus Naur Form.
+<p>
+Accent also supports a notation that is known as Extended Backus Naur Form.
+In this formalism one can write structured members to specify
+local alternatives and optional and repetitive elements.
+
+<h3>Local Alternatives</h3>
+
+A member of the form
+<pre>
+   ( alt_1 | ... | alt_n )
+</pre>
+can be used to specify alternative representations of a member
+without introducing a new nonterminal.
+<p>
+For example, instead of
+<pre>
+   signed_number :
+      sign NUMBER
+   ;
+
+   sign :
+      '+'
+   |  '-'
+   ;
+</pre>
+one can write
+<pre>
+   signed_number :
+      ( '+' | '-' ) NUMBER
+   ;
+</pre>
+Semantic actions may be inserted.
+The actions of the selected alternative are executed.
+<p>
+For example,
+<pre>
+   signed_number&lt;r&gt; :
+      { int s; }
+      ( '+' { s = +1; } | '-' { s = -1; } ) NUMBER&lt;n&gt;
+      { *r = s*n; }
+   ;
+</pre>
+
+<h3>Optional Elements</h3>
+
+A member can also have the form
+<pre>
+   ( M_1 ... M_n )?
+</pre>
+in which case the enclosed items <tt>M_1</tt>,  ... , <tt>M_n</tt>
+may appear in the input or not.
+<p>
+For example,
+<pre>
+   integer :
+      ( sign )? NUMBER
+   ;
+</pre>
+specifies specifies that <tt>integer</tt> is a <tt>NUMBER</tt>
+preceded by an optional <tt>sign</tt>.
+<p>
+So both
+<pre>
+   123
+</pre>
+and
+<pre>
+   + 123
+</pre>
+are valid phrases for <tt>integer</tt>.
+<p>
+More than one alternative may be specified between 
+"<tt>(</tt>" and "<tt>)?</tt>":
+<pre>
+   ( alt_1 | ... | alt_n )?
+</pre>
+For example,
+<pre>	
+    integer :
+       ( '+' | '-' )? NUMBER
+    ;
+</pre>
+specifies that an <tt>integer</tt> is a <tt>NUMBER</tt>
+that is optionally preceded by either a 
+"<tt>+</tt>" or a "<tt>-</tt>".
+<p>
+In case of semantic actions, proper initialization is required,
+because none of the alternative may be processed:
+<pre>
+   integer&lt;r&gt; :
+      { int s = +1; }
+      ( '+' | '-' { s = -1; } )? NUMBER&lt;n&gt;
+      { *r = s*n; }
+   ;
+</pre>
+
+<h3>Repetitive Elements</h3>
+
+A further form of a member is
+<pre>
+   ( M_1 ... M_n )*
+</pre>
+in which case the enclosed items <tt>M_1</tt>,  ... , <tt>M_n</tt>
+may be repeated an arbitrary number of times (including zero).
+<p>
+For example,
+<pre>
+   number_list :
+      NUMBER  ( ',' NUMBER )*
+   ;
+</pre>
+specifies that a <tt>number_list</tt> is given by at least one <tt>NUMBER</tt>
+which is followed by arbitrary number of comma-separated <tt>NUMBER</tt>s.
+<p>
+Semantic action inside repetions are executed as often as there are instances.
+<p>
+For example,
+<pre>
+   number_list :
+      NUMBER&lt;sum&gt;  ( ',' NUMBER&lt;next&gt; { sum += next;} )*
+      { printf("%d\n", sum); }
+   ;
+</pre>
+adds all the numbers and prints their sum.
+<p>
+Again, several alternatives may specified:
+<pre>
+   ( alt_1 | ... | alt_n )*
+</pre>
+For example,
+<pre>
+   statements :
+      ( simple_statement | structured_statement )*
+   ;
+</pre>
+<tt>statements</tt> matches an arbitrary number of statements,
+each of which may be a <tt>simple_statement</tt> or a
+<tt>structured_statement</tt>.
+
+<!------------------------------------------------------------------------------
+SECTION 6: Lexer
+------------------------------------------------------------------------------!>
+<h1><a name="lexer">How to Prepare the Lexer</a></h1>
+
+<h3>The Scanner Function</h3>
+
+The representation of terminal symbols (tokens) is not defined
+by the <i>Accent</i> specification. An <i>Accent</i> parser
+cooperates with a lexical scanner that converts the source text into
+a sequence of tokens. This scanner is implemented by a function
+<tt>yylex()</tt> that reads the next token and returns a value
+representing the kind of the token.
+
+<h3>The Kind of a Token</h3>
+
+The kind of a token is indicated by a number.
+<p>
+A terminal symbol denoted by a literal in the <i>Accent</i> specification,
+e.g. <tt>'+'</tt>, is represented by the numerical value of the character.
+So <tt>yylex()</tt> returns this value if it has recognized this literal:
+<pre>
+   return '+';
+</pre>
+A terminal symbol denoted by a symbolic name declared
+in the token declaration part of the <i>Accent</i> specification,
+e.g. <tt>NUMBER</tt>, is represented by a constant with a symbolic name
+that is the same as the token name. So <tt>yylex</tt> returns
+this constant:
+<pre>
+   return NUMBER;
+</pre>
+The definition of the constants is generated by <i>Accent</i>
+and is contained in the generated file <tt>yygrammar.h</tt>.
+Hence the file introducing <tt>yylex</tt> should include this file.
+<pre>
+   #include "yygrammar.h"
+</pre>
+
+<h3>The Attribute of a Token</h3>
+Besides having a kind (e.g. <tt>NUMBER</tt>)
+a token can also be augmented with a semantic attribute.
+The function <tt>yylex</tt>
+assigns this attribute value to the variable <tt>yylval</tt>.
+For example
+<pre>
+   yylval = atoi(yytext);
+</pre>
+(here <tt>yytext</tt> is the actual token that has been recognized
+as a <tt>NUMBER</tt>; the function <tt>atoi()</tt> converts this
+string into a numerical value).
+<p>
+The variable <tt>yylval</tt> is declared
+in the generated file <tt>yygrammar.c</tt>.
+An <tt>external</tt> declaration for this variable
+is provided in the generated file <tt>yygrammar.h</tt>.
+<p>
+<tt>yylval</tt> is declared as of type <tt>YYSTYPE</tt>.
+This is defined by <i>Accent</i>
+in the file <tt>yygrammar.h</tt> as a macro standing for <tt>long</tt>.
+<pre>
+   #ifndef YYSTYPE
+   #define YYSTYPE long
+   #endif
+</pre>
+The user can define his or her own type before including the file
+<tt>yygrammar.h</tt>.
+For example, a file <tt>yystype.h</tt> may define
+<pre>
+   typedef union {
+      int intval;
+      float floatval;
+   } ATTRIBUTE;
+
+   #define YYSTYPE ATTRIBUTE
+</pre>
+Now the file defining <tt>yylex()</tt> imports two header files:
+<pre>
+#include "yystype.h"
+#include "yygrammar.h"
+</pre>
+and defines the semantic attribute by:
+<pre>
+   yylval.intval = atoi(yytext);
+</pre>
+
+<h3>The <i>Lex</i> Specification</h3>
+
+The function <tt>yylex</tt> can be generated by the scanner generator
+<i>Lex</i> (or the GNU implementation <i>Flex</i>).
+<p>
+A <i>Lex</i> specification gives rules that define for each token how it
+is represented and how it is processed.
+A rule has the form
+<pre>
+   pattern { action }
+</pre>
+<tt>pattern</tt> is a regular expression
+that specifies the representation of the token.
+<p>
+<tt>action</tt> is <i>C</i> code that specifies how the token is processed.
+This code sets the attribute value and returns the kind of the token.
+<p>
+For example, here is a rule for the token <tt>NUMBER</tt>:
+<pre>
+   [0-9]+ { yylval.intval = atoi(yytext); return NUMBER; }
+</pre>
+The <i>Lex</i> specification starts with a definition section
+which can be used to import header files and to declare variables.
+For example,
+<pre>
+   %{
+   #include "yystype.h"
+   #include "yygrammar.h"
+   %}
+   %%
+</pre>
+Here the section imports <tt>yystype.h</tt> to provide a user specific
+definition of <tt>YYSTYPE</tt> and <tt>yygrammar.h</tt>
+that defines the token codes.
+The <tt>%%</tt> separates this section from the rules part.
+
+<h3>The <i>Accent</i> Specification</h3>
+
+In the <i>Accent</i> specification, tokens are introduced in the token
+declaration part.
+<p>
+For example
+<pre>
+   %token NUMBER;
+</pre>
+introduces a token with name <tt>NUMBER</tt>.
+<p>
+Inside a rule the token can be used with a parameter,
+for example
+<pre>
+   NUMBER&lt;x&gt;
+</pre>
+This parameter can then be used in actions to access the attribute of the token.
+It is of type <tt>YYSTYPE</tt>.
+<pre>
+   Value : NUMBER&lt;x&gt; { printf("%d", x.intval); } ;
+</pre>
+or simply
+<pre>
+   Value : NUMBER&lt;x&gt; { printf("%d", x); } ;
+</pre>
+if there is no user specific definition of <tt>YYSTYPE</tt>.
+<p>
+As opposed to the <i>Lex</i> specification the import of <tt>yygrammar.h</tt>
+does not appear in the
+<i>Accent</i> specification.
+If the user specifies an own type <tt>YYSTYPE</tt>
+this has to be done in global prelude part, e.g.
+<pre>
+   %prelude {
+   #include "yystype.h"
+   }
+</pre>
+
+<h3>Tracking the Source Position</h3>
+Like <tt>yylval</tt>, which holds the attribute of a token,
+there is a further variable, <tt>yypos</tt>, thats holds the source position
+of the token.
+<p>
+<tt>yypos</tt> is declared in the <i>Accent</i> runtime
+as an <tt>external</tt> variable of type <tt>long</tt>.
+Its initial value is <tt>1</tt>.
+<p>
+This variable can be set in rules of the <i>Lex</i> specification.
+For example,
+<pre>
+   \n     { yypos++; /* adjust linenumber and skip newline */ }
+</pre>
+If the newline character is seen, <tt>yypos</tt> is incremented
+and so holds the actual line number.
+<p>
+The variable <tt>yypos</tt> is managed in in such a way that
+it holds the correct value when <tt>yyerror</tt> is invoked to
+report a syntax error
+(although due to lookahead already the next token is read).
+<p>
+It has also a correct value when semantic actions are executed
+(note that this is done after lexical analysis and parsing).
+Hence it can be used inside semantic actions,
+for example
+<pre>
+   value:
+      NUMBER&lt;n&gt; { printf("value in line %d is %d\n", yypos, n); }
+   ;
+</pre>
+
+<!------------------------------------------------------------------------------
+SECTION 7: Generate
+------------------------------------------------------------------------------!>
+<h1><a name="generate">How to Generate a Language Processor</a></h1>
+
+<h3>Installing Accent</h3>
+
+Unpack the distribution file and go to directory <tt>accent</tt>.
+Run the file <tt>build</tt> to compile <i>Accent</i>.
+Distributed <tt>build</tt> scripts run Windows with Cygwin and under Linux.
+You may have to adapt them to your local settings.
+The system and the generated software should not contain platform
+dependencies.
+<p>
+Go to directory <tt>exmplaccent</tt> and type <tt>build</tt>
+to run a first example.
+
+<h3>Cooperation of Tools</h3>
+
+<table>
+<tr>
+<td bgcolor="#e9e9d2">
+<pre>
+
+  spec.acc     spec.lex  auxil.c  art.o  
+   |            |         |        |
+   |            |         |        |
+   V            V         |        |  
+  +------+     +---+      |        | 
+  |ACCENT|     |LEX|      |        |
+  +------+     +---+      |        |
+   |            |         |        |
+   |            |         |        |
+   V            V         |        |
+  yygrammar.h  lex.yy.c   |        |
+  yygrammar.c   |         |        |
+   |            |         |        |
+   +------------+--+------+--------+
+                   |
+                   V
+                  +--+
+                  |CC|
+                  +--+
+                   |
+                   |
+                   V
+                  calculator
+
+</pre>
+</td>
+</tr>
+</table>
+
+<h3>Accent</h3>
+
+<i>Accent</i> is invoked with the command
+<pre>
+   accent file
+</pre>
+This reads the grammar in <tt>file</tt>
+and generates the output files
+<tt>yygrammar.h</tt> and
+<tt>yygrammar.c</tt>.
+<p>
+<tt>yygrammar.h</tt> contains definitions of token codes
+and a definition of the type <tt>YYSTYPE</tt> (which is only
+effective if there is no previous definition specified by the user).
+<p>
+<tt>yygrammar.c</tt> contains the grammar encoding and a generated
+tree walker that performs the semantic actions specified by the user.
+<p>
+Example:
+<pre>
+   accent spec.acc
+</pre>
+The file
+<tt>exmplaccent/spec.acc</tt>
+contains the <i>Accent</i> specification of a simple desk calculator.
+
+<h3>Lex</h3>
+
+The scanner should be generated with <i>Lex</i>.
+<i>Lex</i> is invoked by the command
+<pre>
+   lex file
+</pre>
+which reads the specification in <tt>file</tt>,
+a table of regular expressions and corresponding actions,
+and generates a file <tt>yy.lex.c</tt>.
+This file contains the function <tt>yylex()</tt>,
+the lexical analyzer which is invoked by the parser.
+<p>
+Example:
+<pre>
+   lex spec.lex
+</pre>
+The file
+<tt>exmplaccent/spec.lex</tt>
+contains the <i>Lex</i> specification
+for the desk calculator.
+
+<h3>Auxiliary Functions</h3>
+The user has to prepare some auxiliary functions:
+<p>
+There should be a <tt>main()</tt> function that invokes
+the parser function <tt>yyparse()</tt>.
+<p>
+<tt>yyerror(char *msg)</tt>
+is invoked by the parser when an error is detected. It should print
+the text <tt>msg</tt> and perhaps the current line number.
+<p>
+The scanner needs a function <tt>yywrap()</tt>
+(it can be used to switch to a further input file).
+In its simplest form it just returns <tt>1</tt>
+(indicating no further input file).
+<p>
+In our example, the file 
+<tt>exmplaccent/auxil.c</tt></tt>
+defines these functions.
+
+<h3>Generic Parser</h3>
+To create a functioning compiler one also has to supply
+the <i>Entire</i>, a generic parser module. It is provided
+together with <i>Accent</i>.
+
+<h3>Compiling and Linking</h3>
+
+The <i>C</i> compiler is used
+to compile the sources and create the object program.
+<p>
+Example:
+<pre>
+cc -o calculator yygrammar.c lex.yy.c auxil.c $ENTIRE
+</pre>
+(where <tt>$ENTIRE</tt> refers to the <i>Entire</i> parser).
+<p>
+The file
+<tt>exmplaccent/build</tt></tt>
+contains a shell script to produce and run the desk calculator.
+<p>
+Invoking the optimizer during compilation increases parser speed
+by a factor of two.
+For the GNU C compiler you should specify <tt>-O3</tt> as an option
+when compiling the Accent runtime and the generated program.
+
+<!------------------------------------------------------------------------------
+SECTION 8: Notation
+------------------------------------------------------------------------------!>
+<h1><a name="notation">Appendix: The Accent Grammar Notation</a></h1>
+
+<h3>Conventions</h3>
+The <i>Accent</i> Grammar Notation
+is described by rules of the form
+<pre>
+   N :
+      M11 M12 ...
+   |  M21 M22 ...
+      ...
+   ;
+</pre>
+which state that a phrase for N is composed from phrases for
+M11 and M12 and ...
+or from phrases for M21 and M22 ... , etc.
+<p>
+Terminal symbols are enclosed in double quotes, e.g. <tt>"%out"</tt>.
+<p>
+In addition, the terminal symbol <tt>identifier</tt>
+denotes a sequence of one or more letters, digits,
+and underscores ("<tt>_</tt>"),
+starting with a letter.
+<p>
+The terminal symbol <tt>number</tt> denotes a sequence of one or more digits.
+<p>
+The terminal symbol <tt>character_constant</tt>
+denotes a character constant as in the <i>C</i> language.
+<p>
+The terminal symbol <tt>c_code</tt>
+represents arbitrary <i>C</i> code (comments in this code must be closed
+and curly braces much match).
+
+<h3>Grammar</h3>
+
+<font color="red">
+<hr>
+<pre>
+grammar :
+   global_prelude_part token_declaration_part rule_part
+;
+</pre>
+<hr>
+</font>
+
+The <i>Accent</i> Grammar Notation is the set of phrases for the symbol
+<tt>grammar</tt>.
+
+<h3>Global Prelude</h3>
+
+<font color="red">
+<hr>
+<pre>
+global_prelude_part :
+   global_prelude
+|  empty
+;
+
+global_prelude :
+   "%prelude" block
+;
+
+block :
+   "{" c_code "}"
+;
+
+empty :
+;
+</pre>
+<hr>
+</font>
+
+The optional <tt>global_prelude_part</tt> serves to introduce
+user defined functions, global variables, and types.
+The text enclosed in curly braces is inserted
+verbatim at the beginning of the generated program file.
+
+<h3>Token Declarations</h3>
+
+<font color="red">
+<hr>
+<pre>
+token_declaration_part :
+   "%token" token_declaration_list ";"
+|  empty
+;
+
+token_declaration_list :
+   token_declaration "," token_declaration_list
+|  token_declaration
+;
+
+token_declaration :
+   identifier
+;
+</pre>
+<hr>
+</font>
+
+The optional <tt>token_declaration_part</tt> introduces symbolic names for
+terminal symbols (tokens).
+A name must not appear more than once in the list.
+<p>
+These names may be used as members of grammatical rules.
+The actual representation of the corresponding terminal symbols
+must be defined by lexical rules that are not part of the <i>Accent</i>
+specification.
+<p>
+As opposed to nonterminal symbols, terminal symbols are declared without parameters. Nevertheless they have an implicit output parameter
+of type <tt>YYSTYPE</tt>
+which (if used) must be defined in the corresponding lexical rule.
+<h3>Rules</h3>
+
+<font color="red">
+<hr>
+<pre>
+rule_part :
+   rule_list
+;
+
+rule_list :
+   rule_list_element rule_list
+|  rule_list_element
+;
+
+rule_list_element :
+   rule
+|  default_spec
+;
+
+rule :
+   left_hand_side ":" right_hand_side ";"
+;
+
+default_spec :
+   "%default"
+|  "%nodefault"
+;
+</pre>
+<hr>
+</font>
+
+A nonterminal is defined by a rule that
+lists one or more alternatives how to construct a phrase of the nonterminal.
+<p>
+The first rule specifies the start symbol of the grammar.
+The language defined by the grammar is given by the phrases
+of the start symbol.
+<p>
+A group of rules may preceded by a specification of the form
+%default or %nodefault
+(if the first rule is not preceded by such a specification %default is assumed).
+%default specifies that for the following rules default ambiguity annotations
+should be assumed, if %nodefault is specified then there are no default
+ambiguity annotations.
+
+<h3>Left Hand Side of a Rule</h3>
+
+<font color="red">
+<hr>
+<pre>
+left_hand_side :
+   nonterminal formal_parameter_spec
+;
+
+nonterminal :
+   identifier
+;
+</pre>
+<hr>
+</font>
+
+The <tt>left_hand_side</tt> of a rule introduces the nonterminal
+that is defined by the rule.
+It also specifies parameters of the nonterminal, they represent the semantic
+attributes of the nonterminal.
+<p>
+The value of these parameters must be defined by semantic actions
+in the alternatives of the body of the rule.
+When the nonterminal is used as a member in the body of a rule,
+actual parameters are attached. Using theses parameters,
+the attributes of the corresponding nonterminal can be accessed.
+<p>
+
+<font color="red">
+<hr>
+<pre>
+formal_parameter_spec :
+   empty
+|  "&lt;" parameter_spec_list "&gt;"
+|  "&lt;" "%in" parameter_spec_list "&gt;"
+|  "&lt;" "%out" parameter_spec_list "&gt;"
+|  "&lt;" "%in" parameter_spec_list "%out" parameter_spec_list "&gt;"
+;
+
+parameter_spec_list :
+   parameter_spec "," parameter_spec_list
+|  parameter_spec
+;
+</pre>
+<hr>
+</font>
+
+Parameters may be of mode <tt>in</tt> or mode <tt>out</tt>.
+If no mode is specified, all parameters are of mode <tt>out</tt>.
+Otherwise, parameters are of mode <tt>in</tt> if they appear in a list
+preceded by <tt>%in</tt>; they are of mode <tt>out</tt>
+if the list is preceded by <tt>%out</tt>.
+<p>
+An <tt>in</tt> parameter (inherited attribute) passes a value
+from the application of a nonterminal to the right hand side defining
+the symbol.
+It is used to pass context information to a rule.
+<p>
+An <tt>out</tt> parameter (synthesized attribute) passes a value
+from the right hand side defining a symbol to the application of the symbol.
+It is used to pass the semantic value of a rule to the context.
+<p>
+
+<font color="red">
+<hr>
+<pre>
+parameter_spec :
+   parameter_type_opt parameter_name
+;
+
+parameter_type_opt :
+   parameter_type
+|  empty
+;
+
+parameter_type :
+   identifier
+;
+
+parameter_name :
+   identifier
+;
+
+</pre>
+<hr>
+</font>
+
+A parameter specification may be written in the form
+<i>type</i> <i>name</i> in which case <i>type</i>
+is the type of the parameter <i>name</i>.
+
+If the <i>type</i> is missing, the parameter is of type <tt>YYSTYPE</tt>
+(which is also the type of tokens).
+<tt>YYSTYPE</tt> is equivalent to <tt>long</tt> if not defined by the user.
+<p>
+The start symbol of the grammar must have no parameter.
+
+<h3>Right Hand Side of a Rule</h3>
+
+<font color="red">
+<hr>
+<pre>
+right_hand_side :
+   local_prelude_option alternative_list
+;
+
+local_prelude_option :
+   local_prelude
+|  empty
+;
+
+local_prelude :
+   "%prelude" block
+;
+</pre>
+<hr>
+</font>
+The right hand side of a rule specifies a list of alternatives.
+This list may be preceded by a prelude that
+introduces common declarations and initialisation statement in <i>C</i>.
+
+In the generated program the content of <tt>block</tt>
+(without the enclosing parentheses)
+precedes the code generated for the alternatives of the rule.
+The items declared in the prelude are visible within all alternatives.
+
+<h3>Alternatives</h3>
+
+<font color="red">
+<hr>
+<pre>
+alternative_list :
+   alternative "|" alternative_list
+|  alternative
+;
+
+alternative :
+   member_list alternative_annotation_option
+;
+
+member_list :
+   member member_list
+|  empty
+;
+
+alternative_annotation_option :
+   alternative_annotation
+|  empty
+;
+
+alternative_annotation :
+   "%prio" number
+|   "%disfilter" number
+;
+</pre>
+<hr>
+</font>
+
+The alternatives appearing on the right hand side of a rule
+specify how to construct a phrase for the nonterminal of the left hand side.
+An alternative is a sequence of members.
+These members may be nonterminal symbols, token symbols,
+or literals (terminal symbols
+that appear verbatim in the grammar).
+The right hand side may be written as an
+regular expression constructed by grouping, option, and repetition.
+At all places semantic actions may be inserted.
+<p>
+If two alternatives of a nonterminal can produce the same string
+("disjunctive ambiguity")
+then both alternatives must be postfixed by an annotation of
+the form
+<pre>
+   %prio N
+</pre>
+<tt>N</tt> defines the priority of the alternative.
+The alternative with the higher priority is selected.
+<p>
+If the the annotion is missing and the %default specification
+is in effect, then
+<pre>
+   %prio N
+</pre>
+is implicitely assumed, where N is the number of the alternative.
+<p>
+A disjunctive ambiguity can also be resolved algorithmicly
+by specifying
+<pre>
+   %disfilter N1
+</pre>
+and
+<pre>
+   %disfilter N2
+</pre>
+as annotations of conflicting alternatives.
+In case of conflicting items I1 and I2,
+the function call
+<pre>
+   disfilter(N1, N2, I1, I2)
+</pre>
+must resolve the ambiguity.
+<h3>Members</h3>
+
+<font color="red">
+<hr>
+<pre>
+member :
+   member_annotation_option item
+;
+
+member_annotation_option :
+   member_annotation
+|  empty
+;
+
+member_annotation :
+   "%short"
+|  "%long"
+|   "%confilter" number
+;
+
+item :
+   symbol
+|  literal
+|  grouping
+|  option
+|  repetition
+|  semantic_action
+;
+</pre>
+<hr>
+</font>
+
+If the same alternative can produce can produce the same string
+in more than one way because members of that alternative can cover
+substrings of that string of different length
+("disjunctive ambiguity"),
+the rightmost of these members must be prefixed with an annotation of the form
+<pre>
+   %short
+</pre>
+or
+<pre>
+   %long
+</pre>
+If the member is prefixed by "<tt>%short</tt>" (resp. "<tt>%long</tt>")
+the variant that produces the short (resp. long) substring is selected.
+<p>
+If the the annotion is missing and the %default specification
+is in effect, then
+<pre>
+   %short
+</pre>
+is implicitely assumed.
+<p>
+A conjunctive alternative can also be resolved algorithmicly
+by specifying
+<pre>
+   %confilter N
+</pre>
+as a member annotation.
+In case of conflicting items I1 and I2,
+the function call
+<pre>
+   confilter(N, I1, I2)
+</pre>
+must resolve the ambiguity.
+
+<h3>Simple Members</h3>
+
+<font color="red">
+<hr>
+<pre>
+symbol :
+   symbol_name actual_parameters_option
+;
+
+symbol_name :
+   identifier
+;
+</pre>
+<hr>
+</font>
+
+The symbol name must be declared as a nonterminal
+(by specifying a rule for the identifier)
+or as a token (by listing the identifier in the token declaration part).
+
+<font color="red">
+<hr>
+<pre>
+actual_parameters_option :
+   actual_parameters
+|  empty
+;
+
+actual_parameters :
+   "&lt;" actual_parameter_list "&gt;"
+;
+
+actual_parameters_list :
+   actual_parameter "," actual_parameter_list
+|  actual_parameter
+;
+
+actual_parameter :
+   identifier
+;
+</pre>
+<hr>
+</font>
+
+For each formal parameter of the symbol there must be a corresponding actual
+parameter.
+A parameter must be an identifier.
+<p>
+In the generated <i>C</i> code,
+this identifier is declared as a variable of the type of the
+corresponding formal parameter. The same parameter name may be used
+at different places but then the type of the positions must be identical.
+
+<font color="red">
+<hr>
+<pre>
+literal :
+   character_constant
+;
+</pre>
+<hr>
+</font>
+
+Besides being declared as a token, a terminal symbol can also appear verbatim
+as a member of rule.
+
+<h3>Structured Members</h3>
+
+<font color="red">
+<hr>
+<pre>
+grouping :
+   "(" alternative_list ")"
+;
+option :
+   "(" alternative_list zero_annotation_option ")?"
+;
+
+repetition :
+   "(" alternative_list zero_annotation_option ")*"
+;
+zero_annotation_option :
+   zero_annotation
+| empty
+;
+
+zero_annotation :
+   "%zero" alternative_annotation_option
+;
+</pre>
+<hr>
+</font>
+
+A construct
+<pre>
+   ( alt_1 prio_1 | ... | alt_n prio_n )
+</pre>
+is aequivalent to
+<pre>
+   Subphrase
+</pre>
+is defined as in
+<pre>
+   Subphrase:
+      alt_1 prio_1
+   |
+      ...
+   |
+      alt_n prio_n
+   ;
+</pre>
+
+A construct
+<pre>
+   ( alt_1 prio_1 | ... | alt_n prio_n )?
+</pre>
+is aequivalent to
+<pre>
+   Subphrase
+</pre>
+is defined as in
+<pre>
+   Subphrase:
+      alt_1 prio_1
+   |
+      ...
+   |
+      alt_n prio_n
+   |
+      prio_n+1
+   ;
+</pre>
+where the default value of <tt>prio_n+1</tt>
+is <tt>%prio n+1</tt>.
+<p>
+<tt>prio_n+1</tt>
+can be defined explicitely as in
+<pre>
+   ( alt_1 prio_1 | ... | alt_n prio_n %zero prio_n+1 )?
+</pre>
+
+A construct
+<pre>
+   ( alt_1 prio_1 | ... | alt_n prio_n )*
+</pre>
+is aequivalent to
+<pre>
+   Subphrase
+</pre>
+is defined as in
+<pre>
+   Subphrase:
+      alt_1 subphrase_anno Subphrase prio_1
+   |
+      ...
+   |
+      alt_n subphrase_anno Subphrase prio_n
+   |
+      prio_n+1
+   ;
+</pre>
+where the default value of <tt>prio_n+1</tt>
+is <tt>%prio n+1</tt>
+and the default value of <tt>subphrase_anno</tt> is <tt>%short</tt>.
+<p>
+<tt>prio_n+1</tt> and <tt>subphrase_anno</tt>
+can be defined explicitely as in
+<pre>
+   ( alt_1 prio_1 | ... | alt_n prio_n %zero prio_n+1 %tail subphrase_anno )*
+</pre>
+
+<h3>Semantic Actions</h3>
+
+<font color="red">
+<hr>
+<pre>
+semantic_action :
+   block
+;
+</pre>
+<hr>
+</font>
+
+Semantic actions may be inserted as members of alternatives.
+They do not influence the parsing process.
+<p>
+Semantic actions can contain arbitrary <i>C</i> code enclosed in
+curly braces.
+This code is executed in a second phase after the parsing process.
+The semantic actions of selected alternatives
+are executed from left to right in the given order. 
+<p>
+Output parameters of preceding symbols may be accessed in the semantic action.
+Input parameters of following symbols must be defined.
+<p>
+Parameters are accessed by specifying their names.
+The name of the output parameters of the left hand side must be preceded
+by a dereferencing operator ('<tt>*</tt>').
+<p>
+In the generated program
+the curly braces enclosing the action do not appear in the generated program
+(hence a semantic action at the beginning of an alternative
+may contain declarations of variables that local to the alternative).
+
+<!------------------------------------------------------------------------------
+END
+------------------------------------------------------------------------------!>
+
+</body>
+</html>

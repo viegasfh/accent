@@ -1,0 +1,346 @@
+<html>
+<head>
+<title>AMBER, An Ambiguity Checker for Context-free Grammars</title>
+</head>
+<body bgcolor="white">
+<tt>compilertools.net, Technical Report, 2001</tt>
+<br>
+<h1>AMBER,<br>
+An Ambiguity Checker for<br>
+Context-free Grammars</h1>
+<p>
+<i>Friedrich Wilhelm Schr&ouml;er</i><br>
+Fraunhofer Institute for Computer Architecture and Software Technology<br>
+<tt>f.w.schroeer@first.fraunhofer.de</tt>
+<p>
+<h2>Introduction</h2>
+General compiler tools such as ACCENT [2] allow the processing of any
+context-free grammar. This includes ambiguous grammars,
+i.e. grammars for which there are valid source texts that have more
+than one parse tree. Because the semantics of the source text
+is determined by the parse tree (the phrase structure)
+of the source text, such a text may have assigned different meanings
+for different parse trees.
+<p>
+ACCENT allows the user to annote grammrs to resolve ambiguities.
+It also offers a default strategy. Unless an ambiguity is resolved
+in this way, it is detected at parsing time whether a given text is ambiguous.
+<p>
+AMBER can check a grammar statically. If ambiguities are detected,
+AMBER gives hints how to resolve them by annotations.
+<p>
+In general it is undecidable whether a given grammar is ambiguous.
+But if a given grammar is ambiguous this can be detected by enumerating
+and checking the token strings of a language.
+If such an algorithm presents a text with two different parsing trees
+we know that the grammar is ambiguous. But if the grammar is unambiguous
+the algorithm may not terminate.
+<p>
+AMBER is a tool that systematically generates example strings
+of a given grammar and checks them for ambiguity.
+Because this is done using an highly efficient algorithm
+it is realistic to check millions of such examples in short time.
+Whenever two examples have a common prefix the prefix
+is inspected only once.
+<p>
+Hence one has a good chance to detect a problem.
+Nevertheless, the user should be aware of the fact that the search space
+in general is infinite and that the number of examples grows exponentially
+with their length.
+AMBER has a number of options to influence the search.
+For example, the user can choose to inspect all examples up to a given length
+or a randomly selected subset allowing examples
+of greater length in reasonable time.
+<h2>Preparation</h2>
+AMBER is a fixed module that works for all grammars.
+The specific grammar must be provided by a grammar module
+that is generated with ACCENT.
+This grammar module is linked with the AMBER module resulting
+in a checker for the specific grammar.
+<p>
+AMBER does not report ambiguities that are explicitely resolved
+by user annotations.
+The grammar specification for ACCENT should use <tt>%nodefault</tt>
+in order to switch off the default ambiguity resolution.
+<p>
+If <tt>spec.acc</tt> is a grammar in the ACCENT grammar language,
+then the command
+<ul>
+<li><tt>accent spec.acc</tt>
+</ul>
+generates a grammar module <tt>yygrammar.c</tt>.
+This grammar module and the AMBER module are then compiled and linked:
+<ul>
+<li><tt>gcc -o amber -O3 yygrammar.c amber.c</tt>
+</ul>
+This results in an executable program <tt>amber</tt>.
+The program can than be used to check the given grammar.
+For example
+<ul>
+<li><tt>amber examples 1000000</tt>
+</ul>
+is used to check one million examples.
+<h2>Usage</h2>
+AMBER is invoked by the command
+<ul>
+<li><tt>amber option ...</tt>
+</ul>
+where option is one of
+<ul>
+<li><tt>examples <i>n</i></tt><br>
+<li><tt>length <i>n</i></tt><br>
+<li><tt>percentage <i>n</i></tt><br>
+<li><tt>limit <i>n</i></tt><br>
+<li><tt>from <i>n</i></tt><br>
+<li><tt>check <i>symbol</i></tt><br>
+<li><tt>each</tt><br>
+<li><tt>iterate</tt><br>
+<li><tt>ellipsis</tt><br>
+<li><tt>source</tt><br>
+<li><tt>silent</tt><br>
+</ul>
+At least <tt>examples <i>n</i></tt>
+or <tt>length <i>n</i></tt>
+must be specified to limit the search space.
+<h2>Options</h2>
+<h3><tt>examples <i>n</i></tt></h3>
+Inspect <tt><i>n</i></tt> examples.
+An <i>example</i> is a path in the search tree from the root to a point
+where search terminates because the actual token string cannot be continued
+or where options limit the search depth.
+Note that also prefixes of an example are checked.
+AMBER tries to balance the number of examples at branches in the search tree.
+This may cause the number of actually inspected example to differ slightly
+from <tt><i>n</i></tt>.
+<h3><tt>length <i>n</i></tt></h3>
+Inspect examples up to length <tt><i>n</i></tt>.
+<h3><tt>percentage <i>n</i></tt></h3>
+If a token string can be correctly continued with <i>k</i> different tokens,
+consider only <tt><i>n</i></tt> percent of them.
+<h3><tt>limit <i>n</i></tt></h3>
+If a token string can be correctly continued with <i>k</i> different tokens,
+consider only <tt><i>n</i></tt> of them.
+(This option can be combined with <tt>percentage</tt>.)
+<h3><tt>from <i>n</i></tt></h3>
+This is used to form groups with different <tt>percentage</tt> and
+<tt>limit</tt> values.
+From position <tt><i>n</i></tt> of the generated example
+up the next <tt>from</tt> value (or the end of the example)
+use the values specified in the next <tt>percentage</tt>
+and/or <tt>limit</tt> options.
+<p>
+Example
+<ul>
+<li><tt>amber length 10 from 3 limit 3 from 6 percentage 50 from 8</tt>
+</ul>
+From 1 up to 2 all tokens are considered.
+From 3 to 5 at most 3 tokens are considered.
+From 6 to 7 50 percent of the tokens are considered.
+From 8 to 10 again all possible tokens are considered.
+<h3><tt>ellipsis</tt></h3>
+Consider nonterminals also as tokens, i.e. give tokens
+appearing after a phrase for the nonterminal a better change
+to be considered.
+Increases the probability to find longer examples of ambiguity.
+<h3><tt>check <i>symbol</i></tt></h3>
+Check only phrases for nonterminal <tt><i>symbol</i></tt>.
+This can be used to skip irrelevant introductory tokens and hence
+increase the probability to uncover a problem with the specified nonterminal.
+<h3><tt>each</tt></h3>
+This options behaves like <tt>check</tt> applied to all nonterminals
+in sequence (the value of the <tt>examples</tt> option
+applies separately to each nonterminal).
+<h3><tt>iterate</tt></h3>
+This options repeats the amber command again and again
+without resetting the random number generator.
+It only makes sense when random search is invoked using the
+<tt>percentage</tt> or <tt>limit</tt> option.
+<h3><tt>source</tt></h3>
+Print the tokens of the actual example.
+<h3><tt>silent</tt></h3>
+No progress information is displayed. This decreases the runtime significantly.
+<h2>Output</h2>
+Ambiguity information is written onto <i>standard output</i>.
+If an ambiguity is detected two different derivations for the particular
+nonterminal  are emitted. Each kind of ambiguity is reported only once.
+The program explains how the ambiguity could be resolved by an annotation.
+<p>
+Progress information is displayed on <i>stderr</i>.
+
+<h1>Algorithm</h1>
+AMBER is based on Earley's general parsing algorithm[1].
+Earley's recognizer is turned into a synthesizer
+and has been extended to detect ambiguities on the fly.
+AMBER has been derived from ENTIRE [3].
+<h2>The Recognizer</h2>
+
+Earley's recognizer can be sketched as follows.
+<p>
+When a rule is processed we use a "dot" (denoted by "<tt>*</tt>")
+to indicate the actual position inside the rule.
+For example, in
+<pre>
+   N : M_1 ... * M_i ... M_n
+</pre>
+the next symbol being to be processed is <tt>M_i</tt>.
+Such a "dotted rule" is called an <i>item</i>.
+<p>
+An item has also a "back-pointer"
+to find items that triggered the actual one
+(I do not discuss this here).
+<p>
+The algorithm constructs an item list for each input token.
+<p>
+The <i>kernel</i> of the item list for a particular input token
+is constructed by a step called the <i>scanner</i>.
+<p>
+<ul><li>
+<b>Scanner</b><p>
+If <tt>'t'</tt> is the current input token then
+all items of the previous list that have the form
+<pre>
+   M : ... * 't' ...
+</pre>
+are placed into the next item list where the dot is advanced behind the token
+<pre>
+   M : ... 't' * ...
+</pre>
+This indicates that 't' has been recognized and the symbol
+following it has to be processed.
+</ul>
+
+The rest of the item list is constructed by by the <i>closure</i>
+of the kernel.
+The closure is obtained by applying the <i>predictor</i> and
+<i>completer</i> steps until no new item can be added.
+<ul><li>
+<b>Predictor</b><p>
+If the dot appears in front of a nonterm, the "predictor" is invoked.
+It inserts items that start the processing of the member.
+<p>
+If the item has the form
+<pre>
+   M : ... * N ...
+</pre>
+and there is a rule
+<pre>
+   N : Alpha
+</pre>
+then an item
+<pre>
+   N : * Alpha
+</pre>
+is inserted.
+</ul>
+
+
+<ul>
+<li>
+<b>Completer</b><p>
+If the dot appears at the end of a rule, the "completer" is invoked.
+It takes the item that caused the processing of this rule and
+puts the dot after the corresponding nonterminal.
+<p>
+If the item has the form
+<pre>
+   N : ... *
+</pre>
+and this item was initially triggered by an item
+<pre>
+   M : ... * N ...
+</pre>
+then an item
+<pre>
+   M : ... N * ...
+</pre>
+is added, indicating that the member <tt>N</tt> has been processed.
+</ul>
+<p>
+Processing starts with the item
+<pre>
+  YYSTART : * S YYEOF
+</pre>
+where <tt>S</tt> is the start symbol of the grammar.
+The closure of this item determines the initial item list.
+
+<h2>The Synthesizer</h2>
+We turn Earley's recognizer into a synthesizer.
+<p>
+When the algorithm has processed <i>i</i> tokens
+it has constructed <i>i</i> item lists that contain all information
+to parse all continuations of the token list.
+The last item list has items of form
+<pre>
+   M : ... * 't' ...
+</pre>
+that will be processed by the Scanner to construct the kernel
+of the next item list.
+All tokens <tt>'t'</tt> in those items are valid continuations
+of the current token string.
+<p>
+We collect these in a list of valid tokens
+and treat each separately as if it would have been the next source token
+and construct the next item list.
+This is embedded into a recursive procedure that
+extends a given token string of length <i>n</i> :
+
+<pre>
+extend (n)
+{
+   if (search ends at n) return;
+
+   l = list of valid tokens;
+
+   for (each s in l)
+   {
+      let s be the next token;
+      next_item_list();
+      extend(n+1);
+   }
+}
+</pre>
+Using this approach,
+only valid token sequences are considered.
+Instead of parsing each example separately
+and from the beginning, examples with common prefixes
+are parsed together where the prefix is processed only once.
+<h2>References</h2>
+
+<table>
+<tr>
+<td valign="top">
+[1]
+</td>
+<td>
+Earley, J.:<br>
+<i>An Efficient Context-Free Parsing Algorithm</i><br>
+Communications of the ACM<br>
+Volume 13, Number 2, February 1970, pp. 94-102<br>
+</td>
+</tr>
+<tr>
+<td valign="top">
+[2]
+</td>
+<td>
+Schr&ouml;er, F.W.:<br>
+<i>ACCENT,
+A Compiler Compiler for the Entire Class of Context-free Grammars</i><br>
+compilertools.net, Technical Report, 2000
+</td>
+</tr>
+<tr>
+<td valign="top">
+[3]
+</td>
+<td>
+Schr&ouml;er, F.W.:<br>
+<i>ENTIRE,
+A Generic Parser for the Entire Class of Context-free Grammars</i><br>
+compilertools.net, Technical Report, 2000
+</td>
+</tr>
+</table>
+
+</BODY>
+</HTML>

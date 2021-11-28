@@ -1,0 +1,14 @@
+#!/bin/sh
+
+ACCENTHOME=..
+ACCENT=$ACCENTHOME/accent/accent
+AMBER=$ACCENTHOME/amber/amber.c
+
+set -e
+set -x
+
+$ACCENT spec.acc
+
+gcc -o amber -O3 yygrammar.c $AMBER
+
+./amber examples 500

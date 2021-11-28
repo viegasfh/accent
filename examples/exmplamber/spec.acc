@@ -1,0 +1,31 @@
+%nodefault
+
+Root:
+   Example1
+|
+   Example2
+;
+
+Example1 :
+   A
+|
+   B
+;
+
+A :
+  'x'
+;
+
+B :
+  'x'
+;
+
+Example2 :
+   X X
+;
+
+X :
+  'x'
+|
+  'x' 'x'
+;

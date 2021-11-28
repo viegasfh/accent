@@ -1,0 +1,403 @@
+<html>
+<head>
+<title>
+ENTIRE,
+A Generic Parser for the
+Entire Class of Context-free Grammars
+</title>
+</head>
+<body>
+
+<tt>compilertools.net, Technical Report, 2000</tt><br>
+<h1>ENTIRE,<br>
+A Generic Parser for the<br>
+Entire Class of Context-free Grammars</h1>
+<p>
+<i>Friedrich Wilhelm Schr&ouml;er</i><br>
+Fraunhofer Institute for Computer Architecture and Software Technology<br>
+<tt>f.w.schroeer@first.fraunhofer.de</tt>
+<p>
+
+ENTIRE is a generic parser that can analize source text according to the
+rules of any context-free grammar.
+The grammar and the semantic actions have to be provided by a companion tool,
+e.g. the ACCENT compiler compiler [1].
+The user should study the documentation for that tool
+but is not required to be familiar with the ENTIRE parsing technology.
+However, we provide a short overview.
+The technical details are documented inside the source file,
+which is freely available.
+
+<h3>Introduction</h3>
+
+Parsing usually begins with processing
+the start symbol of the grammar.
+<p>
+A nonterminal can be processed as follows.
+One selects an alternative and processes it from left to right.
+<p>
+If at the current position inside the alternative there is a token,
+one compares this with the current input token. If they match
+the input token is eaten and the working point inside the rule
+is advanced to the next member.
+<p>
+If at the current position there is a nonterminal,
+this nonterminal is processed and then the working point
+is advanced after the symbol.
+<p>
+When at a given point during passing more than one alternative can be applied,
+there are several approaches:
+<ul>
+<li>
+<i>Exhaustive parsing</i> follows all possibilities in parallel.
+(This approach can deal with all grammars)
+<li>
+<i>Predictive parsing</i> inspects the next input token
+and requires that this uniquely discriminates one alternative.
+(This approach can deal with a restrictive class of grammars, LL(1)
+grammars)
+</ul>
+There is also an approach that inspects the next input token and follows
+a group of alternatives. Such groups are build at parser generation time
+and collect alternatives that can be followed in parallel by the same sequence
+of parser actions.
+(This approach can deal with a larger but still restrictive class of grammars,
+it is used by Yacc.)
+<p>
+
+Our approach combines exhaustive and predictive passing.
+Exhaustive parsing is used to achieve generality.
+Predictive parsing is used to improve efficency.
+
+<h3>Exhaustive Parsing</h3>
+
+We use <i>Earley's Algorithm</i>
+[2]
+for exhaustive parsing.
+<p>
+Whereas in Accent a nonterminal is defined by one rule
+with several alternatives
+<pre>
+   N : A_1 | ... | A_n
+</pre>
+for this discussion it is more convenient to define a nonterminal
+by several rules
+<pre>
+   N : A_1
+   ...
+   N : A_n
+</pre>
+Assume that
+<pre>
+   N : M_1 ... M_i ... M_n
+</pre>
+is such a rule.
+When such a rule is processed we use a "dot" (denoted by "<tt>*</tt>")
+to indicate the actual position inside the rule.
+For example, in
+<pre>
+   N : M_1 ... * M_i ... M_n
+</pre>
+the next symbol being to be processed is <tt>M_i</tt>.
+Such a "dotted rule" is called an <i>item</i>.
+<p>
+An item has also a "back-pointer"
+to find items that triggered the actual one
+(I do not discuss this here).
+<p>
+Earley [2] proposes to
+attach a dynamically computed look ahead strings to items.
+Since we use static look ahead set computation we do not use this component.
+<p>
+The algorithm constructs an item list for each input token.
+<p>
+The <i>kernel</i> of the item list for a particular input token
+is constructed by a step called the <i>scanner</i>.
+<p>
+<ul><li>
+<b>Scanner</b><p>
+If <tt>'t'</tt> is the current input token then
+all items of the previous list that have the form
+<pre>
+   M : ... * 't' ...
+</pre>
+are placed into the next item list where the dot is advanced behind the token
+<pre>
+   M : ... 't' * ...
+</pre>
+This indicates that 't' has been recognized and the symbol
+following it has to be processed.
+</ul>
+
+The rest of the item list is constructed by by the <i>closure</i>
+of the kernel.
+The closure is obtained by applying the <i>predictor</i> and
+<i>completer</i> steps until no new item can be added.
+<ul><li>
+<b>Predictor</b><p>
+If the dot appears in front of a nonterm, the "predictor" is invoked.
+It inserts items that start the processing of the member.
+<p>
+If the item has the form
+<pre>
+   M : ... * N ...
+</pre>
+and there is a rule
+<pre>
+   N : Alpha
+</pre>
+then an item
+<pre>
+   N : * Alpha
+</pre>
+is inserted.
+</ul>
+
+
+<ul>
+<li>
+<b>Completer</b><p>
+If the dot appears at the end of a rule, the "completer" is invoked.
+It takes the item that caused the processing of this rule and
+puts the dot after the corresponding nonterminal.
+<p>
+If the item has the form
+<pre>
+   N : ... *
+</pre>
+and this item was initially triggered by an item
+<pre>
+   M : ... * N ...
+</pre>
+then an item
+<pre>
+   M : ... N * ...
+</pre>
+is added, indicating that the member <tt>N</tt> has been processed.
+</ul>
+<p>
+Processing starts with the item
+<pre>
+  YYSTART : * S YYEOF
+</pre>
+where <tt>S</tt> is the start symbol of the grammar.
+The closure of this item determines the initial item list.
+
+<h3>Predictive Parsing</h3>
+Predictive parsing has been described by 
+<i>Lewis</i>
+and 
+<i>Stearns</i>
+[3].
+<p>
+In this approach, for each alternative of a nonterminal
+a set of <i>director tokens</i> is computed at compiler generation time.
+This set contains all tokens that are legal tokens when we start to
+process the nonterminal.
+These are given by (1) those tokens that can start the alternative and (2),
+if the alternative can produce the empty string, the tokens that can follow
+a phrase for the nonterminal.
+<p>
+For example, consider this simple grammar
+<pre>
+   S : N 'x' ;
+   N : A | B ;
+   A : 'a' ;
+   B : ;
+</pre>
+For the alternative
+<pre>
+   N : A ;
+</pre>
+the set of director tokens is given by <tt>'a'</tt>,
+because this is the (only)
+token that is valid for this alternative.
+<p>
+For the alternative
+<pre>
+   N : B ;
+</pre>
+the set is given by <tt>'x'</tt>:
+<tt>B</tt> can produce the empty string so we can "look through" <tt>N</tt>
+in the rule for <tt>S</tt> and see the <tt>'x'</tt> that follows
+<tt>N</tt> in the rule for <tt>S</tt>.
+<p>
+When parsing a text we begin with the start symbol <tt>S</tt>
+and hence have to recognize an <tt>N</tt>.
+Assume that we are confronted with an <tt>'a'</tt>.
+In this case we would choose the first alternative for <tt>N</tt>,
+because <tt>'a'</tt> is in its director set.
+If we are confronted with an <tt>'x'</tt>, we would choose
+the second alternative, because <tt>'x'</tt> is in its director set.
+<p>
+In general, if a choice must be made which alternative has to be used to parse
+a phrase for a particular nonterminal, the first token of the rest of the input
+is inspected. If it appears in the director set the corresponding alternative
+is selected.
+<p>
+In order that this works one has to postulate that the director sets
+of the alternatives of a nonterminal are mutually disjoint
+(otherwise it would not be clear what alternative should be selected).
+<p>
+This restricts the class of grammars that can be processed with
+this approach.
+<p>
+Predictive parsers are often implemented by <i>recursive descent</i>.
+<p>
+Here one writes a procedure for each nonterminal that inspects
+the current input token and uses it to select an alternative.
+It then processes the members of this alternative.
+<p>
+For example, the nonterminal <tt>N</tt> from the above grammar
+could be implemented in this way:
+<pre>
+   procedure N()
+
+      if current_token in { 'a' } then
+	 A();
+      else if current_token in { 'x' } then
+	 B();
+      else
+	 Error();
+</pre>
+Such a procedure can be used to add semantic processing to parsing.
+Just include the code at arbitrary places inside the code for
+the alternatives.
+This is possible, because there is no backtracking 
+or processing of several rules
+in parallel. It would not work with exhaustive parsing.
+
+<h3>Combined Parsing</h3>
+
+Accent combines exhaustive and predictive parsing.
+<p>
+Exhaustive parsing is implemented as described above.
+We cannot use predictive parsing directly because it would narrow the class
+of grammars that we want to process.
+<p>
+We cannot use director sets to deterministically select an alternative,
+but we can use them to exclude an alternative that would not be viable.
+<p>
+For example, if the input
+<pre>
+   a x
+</pre>
+is parsed using the grammar above, the item
+<pre>
+   S : * N 'x'
+</pre>
+would cause the predictor to generate the item
+<pre>
+   N : * A
+</pre>
+But it would also generate
+<pre>
+   N : * B
+</pre>
+which in turn would trigger
+<pre>
+   B : *
+</pre>
+This item would then cause the completer to create
+<pre>
+   N : B *
+</pre>
+and then
+<pre>
+   S : N * 'x'
+</pre>
+This item cannot be continued because the input starts with <tt>'a'</tt>.
+<p>
+The director set of the alternative
+<pre>
+   N : B
+</pre>
+contains only the element <tt>'x'</tt>.
+Because the current input token is <tt>'a'</tt>
+this alternative is not viable.
+<p>
+Predictive parsing requires that the director sets uniquely determines
+one alternative. In Accent, if the current token is in the director set
+of more than one alternative, all these alternatives are processed.
+Alternatives with a director set that does not contain the current token
+are excluded.
+<p>
+Accent also uses recursive descent to execute semantic actions.
+This cannot be done during parsing because several rules can
+be processed in parallel. Hence there is a second pass.
+The generated procedures look like those presented above, they
+do not inspect the director set but use the result of the parsing to
+select an alternative.
+
+<h3>Structure Information</h3>
+Accent parsers do not compute derivation trees
+after building the item sequence
+but attach structure information directly to items.
+<p>
+There is a "sub-pointer" that refers to the
+"subtree item" of the current item.
+If the item has the form
+<pre>
+   M : alpha N * beta
+</pre>
+the "sub-pointer" refers to an item of the form
+<pre>
+   N : gamma *
+</pre>
+i.e. the item that concluded the processing of <tt>N</tt>.
+<p>
+A "left-pointer" is used as a reference to "preceding items".
+If the item has the form
+<pre>
+   M : alpha N * beta
+</pre>
+then the "left-pointer" refers to an item
+<pre>
+   M : alpha * N beta
+</pre>
+i.e. the item that triggered the processing of <tt>N</tt>.
+<p>
+This information can be used to detect and resolve
+ambiguities at the earliest point.
+
+<h1><a name="references">References</a></h1>
+
+<table>
+<tr>
+<td valign="top">
+[1]
+</td>
+<td>
+Schr&ouml;er, F.W.:<br>
+<i>ACCENT,
+A Compiler Compiler for the Entire Class of Context-free Languages</i><br>
+compilertools.net, Technical Report, 2000
+</td>
+</tr>
+<tr>
+<tr>
+<td valign="top">
+[2]
+</td>
+<td>
+Earley, J.:<br>
+<i>An Efficient Context-Free Parsing Algorithm</i><br>
+Communications of the ACM<br>
+Volume 13, Number 2, February 1970, pp. 94-102<br>
+</td>
+</tr>
+<tr>
+<td valign="top">
+[3]
+</td>
+<td>
+Lewis, P. M. II, Staerns, R. E.:<br>
+<i>Syntax directed transduction</i><br>
+Journal of the ACM<br>
+Volume 15, Number 3, 1986, pp. 464-488<br>
+</td>
+</tr>
+</table>
+
+</body>
+</html>

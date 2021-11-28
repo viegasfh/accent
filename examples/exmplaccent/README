@@ -1,0 +1,9 @@
+This directory, `$DISTRIBUTION/exmplaccent',
+contains a simple application of the Accent Compiler Compiler,
+a desk calculator.
+
+Before running the example, you have to install Accent
+in `DISTRIBUTION/accent'.
+
+Run the script `build' to build and execute the
+desk calculator.

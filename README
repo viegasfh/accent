@@ -1,0 +1,45 @@
+The directory `$DISTRIBUTION/accent'
+contains the C code of the ACCENT Compiler Compiler.
+To install ACCENT, go that directory and run the script `build'.
+See `$DISTRIBUTION/Accent.html' for the documentation.
+
+The directory `$DISTRIBUTION/examples/exmplaccent'
+contains a simple application of the Accent Compiler Compiler,
+a desk calculator.
+To built and execute the desk calculator
+go that directory and run the script `build'.
+Before executing the example, you have to install Accent
+in `DISTRIBUTION/accent'.
+
+The directory `$DISTRIBUTION/entire'
+contains the C code for ENTIRE, a generic parser
+for the entire class of context-free grammars.
+ENTIRE is required for language processors
+generated with ACCENT.
+See `$DISTRIBUTION/docs/html/Entire.html' for an overview.
+
+The directory `$DISTRIBUTION/amber'
+contains the C code for AMBER Ambiguity Checker.
+See `$DISTRIBUTION/docs/html/Amber.html' for a description.
+
+The directory `$DISTRIBUTION/examples/exmplamber'
+contains an example how to to use the AMBER Ambiguity Checker.
+To execute the example go to that directory and
+run the script `build'.
+Before executing the example, you have to install Accent
+in `DISTRIBUTION/accent'.
+
+Copyright (C) 1984, 1999, 2006 Friedrich Wilhelm Schroeer
+
+ACCENT, ENTIRE, and AMBER is free software;
+you can redistribute them and/or modify them
+under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+The software is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
