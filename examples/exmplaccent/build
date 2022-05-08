@@ -1,8 +1,8 @@
 #!/bin/sh
 
-ACCENT=../accent/accent
-ENTIRE=../entire/entire.c
-LEX=lex
+ACCENT=../../accent/accent
+ENTIRE=../../entire/entire.c
+LEX=flex
 CC=cc
 
 $ACCENT spec.acc
