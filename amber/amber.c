@@ -11,12 +11,12 @@
  *   it under the terms of the GNU General Public License as published by
  *   the Free Software Foundation; either version 2 of the License, or
  *   (at your option) any later version.
- * 
+ *
  *   This program is distributed in the hope that it will be useful,
  *   but WITHOUT ANY WARRANTY; without even the implied warranty of
  *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *   GNU General Public License for more details.
- * 
+ *
  *   You should have received a copy of the GNU General Public License
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
@@ -26,10 +26,8 @@
 /*============================================================================*/
 #include <stdlib.h>
 #include <stdio.h>
-
-#define PRIVATE static
-#define PUBLIC
-
+#include <string.h>
+#include "amber.h"
 /*============================================================================*/
 /* OPTIONS                                                                    */
 /*============================================================================*/
@@ -84,10 +82,10 @@ long dot[ITEMLIMIT], back[ITEMLIMIT], left[ITEMLIMIT], sub[ITEMLIMIT];
  *   where
  *      D' =  M : * alpha beta
  *
- * L (left-pointer) 
+ * L (left-pointer)
  *
  * S (sub-pointer)
- * 
+ *
  * [ documentation to be completed in forthcoming release ....... ]
  *
  * If I is the index of an item < D, B, L, S > then
@@ -124,7 +122,6 @@ long lookaheadswitchedoff = 0;
 /* GRAMMAR ENCODING                                                           */
 /*============================================================================*/
 
-extern int yygrammar[];
 /*
  * encoded grammar
  * defined in 'yygrammar.c'
@@ -165,6 +162,7 @@ extern int yygrammar[];
  *   4: -1    (points to start of rule)
  *   5: 0     (rule number)
  */
+extern int yygrammar[];
 
 #define STARTUSERGRAMMAR 8
 
@@ -210,19 +208,17 @@ long lookaheadsym;
 extern long yypos;
 /* this variable must be set by the scanner */
 
-PRIVATE long lookaheadpos;
-PRIVATE char * lookaheadtokenname;
+static long lookaheadpos;
+static char * lookaheadtokenname;
 
 /*============================================================================*/
 /* PRINT ROUTINES                                                             */
 /*============================================================================*/
 
-PRIVATE print_item(p)
-   int p;
 /*
  * print the item with index p
  */
-{
+static void print_item(int p) {
    int i, b, e, l, k;
    i = dot[p];
 
@@ -270,18 +266,15 @@ PRIVATE print_item(p)
       k++;
    }
    if (yygrammar[i] <= 0) printf(" *");
-   printf(" (back:%d sub:%d left:%d)\n", back[p], sub[p], left[p]);
+   printf(" (back:%ld sub:%ld left:%ld)\n", back[p], sub[p], left[p]);
 }
 
 /*----------------------------------------------------------------------------*/
-
-PRIVATE print_coordinate(i)
-   int i;
 /*
  * print source coordinate (of grammar file) with code i
  * the number encodes both, line and column information
  */
-{
+static void print_coordinate(int i) {
    int pos = yycoordinate[i];
    int l = pos / 1000;
    int c = pos % 1000;
@@ -291,12 +284,10 @@ PRIVATE print_coordinate(i)
 
 /*----------------------------------------------------------------------------*/
 
-PRIVATE print_tree(i)
-   int i;
 /*
  * print tree for item with index i
  */
-{
+static void print_tree(int i) {
    static int indent = 0;
    int k;
 
@@ -348,14 +339,12 @@ PRIVATE print_tree(i)
 /* DIRECTOR SETS                                                              */
 /*============================================================================*/
 
-PRIVATE int lookup_dirset(ruleptr)
-   long ruleptr;
 /*
  * Let 'rule' be the rule be the rule into which 'ruleptr' points.
  * Let 'tkn' be the code of the next token.
  * Return ('tkn' is in the director set of 'rule').
  */
-{
+static int lookup_dirset(long ruleptr) {
    int p;
    int rule;
    int tkn;
@@ -373,8 +362,6 @@ PRIVATE int lookup_dirset(ruleptr)
 
 /*----------------------------------------------------------------------------*/
 
-PRIVATE int is_viable (d)
-   int d;
 /*
  * d is a pointer into the encoded grammar
  * Returns true if the the symbol yygrammar[d] (token or nonterminal)
@@ -386,17 +373,16 @@ PRIVATE int is_viable (d)
  *
  * NOTE: the union of the director sets should be computed statically
  */
-{ 
+static int is_viable (int d) {
    if (yygrammar[d] >= term_base) {
       /* token */
       if (yygrammar[d] == lookaheadsym) {
-	 return 1;
+       return 1;
       }
       else {
-	 return 0;
+       return 0;
       }
    }
-
    else if (yygrammar[d] > 0 ) {
       /* nonterm */
 
@@ -434,34 +420,30 @@ PRIVATE int is_viable (d)
 /*============================================================================*/
 
 int posforerrormsg = 0;
-PRIVATE syntaxerror()
 /*
  * Report syntax error and terminate
  */
-{
-printf("syntaxerror() should not be called in AMBER\n");
-exit(1);
+static void syntaxerror() {
+  printf("syntaxerror() should not be called in AMBER\n");
+  exit(1);
 }
 
 /*----------------------------------------------------------------------------*/
 
-PRIVATE Abort(msg)
-   char *msg;
 /*
  * emit msg and terminate
  */
-{
+static void Abort(char *msg) {
    printf("%s\n", msg);
    exit(1);
 }
 
 /*----------------------------------------------------------------------------*/
 
-PRIVATE table_full()
 /*
  * item table full
  */
-{
+static void table_full() {
 #if DYNAMICITEMS
    ITEMLIMIT += ITEMINCR;
 
@@ -480,8 +462,7 @@ PRIVATE table_full()
 
 /*----------------------------------------------------------------------------*/
 
-PUBLIC yymallocerror()
-{
+void yymallocerror() {
    printf("running out of memory\n");
    exit(1);
 }
@@ -506,35 +487,31 @@ int hash[HSIZE];
 
 /*----------------------------------------------------------------------------*/
 
-PRIVATE int clearhash ()
 /*
  * clear hash table
  */
-{
+static void clearhash () {
    int i;
 
-   for (i = 0; i<HSIZE; i++) hash[i] = 0;
+   for (i = 0; i<HSIZE; i++)
+     hash[i] = 0;
 }
 
 /*----------------------------------------------------------------------------*/
 
-PRIVATE int hashed(d, b)
-   int d, b;
 /*
  * true if there is an entry entry for item with dot d and backpointer b
  */
-{
+static int hashed(int d, int b) {
    return hash[HASHCODE];
 }
 
 /*----------------------------------------------------------------------------*/
 
-PRIVATE sethash(d, b)
-   int d, b;
 /*
  * set entry for item with dot d and backpointer b
  */
-{
+static void sethash(int d, int b) {
    hash[HASHCODE] = 1;
 }
 #endif
@@ -543,7 +520,6 @@ PRIVATE sethash(d, b)
 /* TOKENS                                                                     */
 /*============================================================================*/
 
-PRIVATE readsym ()
 /*
  * read next token
  * current token: 'sym'
@@ -551,9 +527,9 @@ PRIVATE readsym ()
  * extend the list of lexical values by calling
  * next_lexval() provided by 'yygrammar.c'
  */
-{
-printf("readsym() should not be called in AMBER\n");
-exit(1);
+static void readsym () {
+  printf("readsym() should not be called in AMBER\n");
+  exit(1);
 }
 
 /*============================================================================*/
@@ -563,12 +539,9 @@ exit(1);
 int prioval = 1;
 int prioindex;
 
-PRIVATE int getprio(subptr)
-   int subptr;
-
-   /* subptr points to an item */
-   /* return the prio of corresponding rule */
-{
+/* subptr points to an item */
+/* return the prio of corresponding rule */
+static int getprio(int subptr) {
    int i;
    int prio;
 
@@ -590,12 +563,9 @@ PRIVATE int getprio(subptr)
 
 /*----------------------------------------------------------------------------*/
 
-PRIVATE int getmemberannotation(i)
-   int i;
-
-   /* i is the index of a member */
-   /* return the annotation of the member before the dot */
-{
+/* i is the index of a member */
+/* return the annotation of the member before the dot */
+static int getmemberannotation(int i) {
    int grammarindex, annotation;
 
    grammarindex = dot[i]-1;
@@ -610,17 +580,14 @@ PRIVATE int getmemberannotation(i)
 /* AMBIGUITY RESOLUTION                                                       */
 /*============================================================================*/
 
-PRIVATE int test_for_cycle(subtree, container)
-   int subtree;
-   int container;
 /*
  * return true if
  * the tree to which 'container' (a "subpointer" of an item) points
  * contains the tree to which 'subtree' (also a "subpointer") points
  */
-{
+static int test_for_cycle(int subtree, int container) {
    if (container < subtree) {
-      /* an earlier item cannot refer a later one */ 
+      /* an earlier item cannot refer a later one */
       return 0;
    }
    if (container == subtree) {
@@ -641,14 +608,12 @@ PRIVATE int test_for_cycle(subtree, container)
 
 int ambiguity_count = 0;
 
-PRIVATE conjunctive_ambiguity(i, d, l, s)
-   int i, d, l, s;
 /*
  * The item with index i
  * and an item with dot d, leftpointer l, and subpointer s
  * introduce a conjunctive ambiguity
  */
-{
+static void conjunctive_ambiguity(int i, int d, int l, int s) {
    if (left[i] != l) {
 
       /* Conjunctive Ambiguity */
@@ -764,6 +729,7 @@ PRIVATE conjunctive_ambiguity(i, d, l, s)
             }
             else {
                printf("user function `confilter' returns invalid value\n");
+
                exit(1);
             }
          }
@@ -785,7 +751,7 @@ PRIVATE conjunctive_ambiguity(i, d, l, s)
                exit(1);
             }
          }
-            
+
       }
 
       left[i] = selected_left;
@@ -794,8 +760,6 @@ PRIVATE conjunctive_ambiguity(i, d, l, s)
 }
 
 /*----------------------------------------------------------------------------*/
-int disfilter(n1, n2, p1, p2)
-   int n1, n2, p1, p2;
 /*
  * Called when a disjunctive ambiguity is detected and there are
  * "%disfilter n" annotations instead of "%prio n".
@@ -805,7 +769,7 @@ int disfilter(n1, n2, p1, p2)
  * If the function returns 1, p1 will be selected,
  * if the function returns 2, p2 will be selected,
  */
-{
+int disfilter(int n1, int n2, int p1, int p2) {
    /* dummy implementation for testing purposes */
    /* should be replaced by user code */
    if (n1 > n2) return 1;
@@ -813,8 +777,6 @@ int disfilter(n1, n2, p1, p2)
    return 3;
 }
 
-int confilter(n, p1, p2)
-   int n, p1, p2;
 /*
  * Called when a conjunctive ambiguity is detected and there is a
  * "%confilter n" annotation instead of "%long"/"%short".
@@ -827,21 +789,19 @@ int confilter(n, p1, p2)
  * If the function returns 1, p1 will be selected ("%short"),
  * if the function returns 2, p2 will be selected ("%long"),
  */
-{
+int confilter(int n, int p1, int p2) {
    /* dummy implementation for testing purposes */
    /* should be replaced by user code */
    return n;
 }
 /*----------------------------------------------------------------------------*/
 
-PRIVATE disjunctive_ambiguity(i, d, l, s)
-   int i, d, l, s;
 /*
  * The item with index i
  * and an item with dot d, leftpointer l, and subpointer s
  * introduce a disjunctive ambiguity
  */
-{
+static void disjunctive_ambiguity(int i, int d, int l, int s) {
    /* Disjunctive Ambiguity */
 
    int sub1, sub2, rule1, rule2, prio1, prio2;
@@ -961,8 +921,6 @@ PRIVATE disjunctive_ambiguity(i, d, l, s)
 /* EARLEY                                                                     */
 /*============================================================================*/
 
-PRIVATE SEARCH(d, b, l, s)
-   long d, b, l, s;
 /*
  * An item with dot d, backpointer b, leftpointer l, subpointer s
  * has been preliminary added to the current list at position
@@ -974,8 +932,8 @@ PRIVATE SEARCH(d, b, l, s)
  * if the backpointer/subpointer is the same
  * the new item is already present
  */
-{
-   register long i;
+static void SEARCH(long d, long b, long l, long s) {
+   long i;
 
    i = thislist;
 
@@ -1005,8 +963,6 @@ PRIVATE SEARCH(d, b, l, s)
 
 /*----------------------------------------------------------------------------*/
 
-PRIVATE additem ( d, b, l, s)
-   long d, b, l, s;
 /*
  * add an item with dot d, backpointer b, leftpointer l, and subpointer s
  * to the current item list
@@ -1018,7 +974,7 @@ PRIVATE additem ( d, b, l, s)
  * it is not neccessary to invoke SEARCH because the item is unique in the
  * current list
  */
-{
+static void additem (long d, long b, long l, long s) {
 
    /* sentinel */
    dot [ last_item+1 ] = d;
@@ -1042,8 +998,6 @@ PRIVATE additem ( d, b, l, s)
 
 /*----------------------------------------------------------------------------*/
 
-PRIVATE kernel (prevlist)
-   long prevlist;
 /*
  * compute the kernel of the next item list
  * prevlist points to the previous list
@@ -1055,7 +1009,7 @@ PRIVATE kernel (prevlist)
  *       < N : alpha * yygrammar[i] beta, B,_,_ > is in IL[i-1] and has index I
  *    }
  */
-{
+static void kernel (long prevlist) {
    long i;
    i = prevlist;
    while (dot[i]) {
@@ -1085,8 +1039,6 @@ PRIVATE kernel (prevlist)
 
 /*----------------------------------------------------------------------------*/
 
-PRIVATE predictor (item)
-   long item;
 /*
  * predictor step for item 'item'
  *
@@ -1103,9 +1055,9 @@ PRIVATE predictor (item)
  * and there is a rule N : gamma
  * B' is a reference to IL[i]
  */
-{
+static void predictor (long item) {
    long ruleptr;
-  
+
    ruleptr = yygrammar[dot[item]];
    do {
       int old = last_item;
@@ -1135,8 +1087,6 @@ PRIVATE predictor (item)
 
 /*----------------------------------------------------------------------------*/
 
-PRIVATE completer (item)
-   long item;
 /*
  * completer step for item 'item'
  *
@@ -1155,18 +1105,19 @@ PRIVATE completer (item)
  *    < N : alpha M * beta, B',I,ITEM >
  * if there is not yet an item with the first two components
  */
-
-{
+static void completer (long item) {
    long lhs, old;
-   register int i;
+   int i = 0;
    int dot_i;
-  
+
    lhs=-yygrammar[dot[item]];
    i=back[item];
 
    /* loop over all items in earlier item list */
    dot[last_item+1] = 0; /* sentinel */
-   while (dot_i = dot[i]) {
+   dot_i = dot[i];
+
+   while (dot_i) {
 
       if (yygrammar[/*dot[i]*/dot_i]==lhs) {
 
@@ -1189,12 +1140,12 @@ PRIVATE completer (item)
       }
 
       i++;
+      dot_i = dot[i];
    }
 }
 
 /*----------------------------------------------------------------------------*/
 
-PRIVATE closure ()
 /*
  * compute closure for the kernel of the current item list
  *
@@ -1202,7 +1153,7 @@ PRIVATE closure ()
  * apply PREDICTOR and COMPLETOR
  * as long as there are changes
  */
-{
+static void closure () {
    long i;
    int oldend;
 
@@ -1223,7 +1174,6 @@ PRIVATE closure ()
 
 /*----------------------------------------------------------------------------*/
 
-PRIVATE initial_itemlist()
 /*
  * compute initial item list
  * its kernel is given by the item
@@ -1231,8 +1181,8 @@ PRIVATE initial_itemlist()
  * for which the closure is computed
  *
  */
-{
-   
+static void initial_itemlist() {
+
 #if DYNAMICITEMS
    ITEMLIMIT = ITEMINCR;
 
@@ -1260,12 +1210,11 @@ PRIVATE initial_itemlist()
 
 int itemlist_empty;
 
-PRIVATE next_itemlist()
 /*
  * compute next item list:
  * kernel and closure
  */
-{
+static void next_itemlist() {
    long prevlist;
 
 
@@ -1284,13 +1233,12 @@ PRIVATE next_itemlist()
 
 /*----------------------------------------------------------------------------*/
 
-PRIVATE itemlist_sequence()
 /*
  * compute the sequence of item lists:
  * initial_itemlist
  * and then next_itemlist for each input token
  */
-{
+static void itemlist_sequence() {
 #if ERRPOSCORRECTION
    int saved_sym;
    int saved_yypos;
@@ -1412,12 +1360,10 @@ int stptr = 0;
 
 /*----------------------------------------------------------------------------*/
 
-PRIVATE push(n)
-   int n;
 /*
  * push item index n onto the stack
  */
-{
+static void push(int n) {
    if (stptr == STACKSIZE-2) {
       STACKSIZE += STACKINCR;
       stack = (int *) realloc(stack, sizeof(int) * STACKSIZE);
@@ -1428,23 +1374,21 @@ PRIVATE push(n)
 
 /*----------------------------------------------------------------------------*/
 
-PRIVATE int pop()
 /*
  * pop an item index from the stack and return the value
  */
-{
+static int pop() {
    stptr--;
    return stack[stptr];
 }
 
 /*----------------------------------------------------------------------------*/
 
-PRIVATE init_stack()
 /*
  * Init stack
  * push index of 'item'
  */
-{ 
+static void init_stack() {
    STACKSIZE = STACKINCR;
    stack = (int *) malloc (sizeof(int) * STACKSIZE);
    if (! stack) yymallocerror();
@@ -1452,7 +1396,6 @@ PRIVATE init_stack()
 
 /*----------------------------------------------------------------------------*/
 
-PUBLIC int yyselect()
 /*
  * return the next rule number (for the left-derivation)
  *
@@ -1476,9 +1419,9 @@ PUBLIC int yyselect()
  * then the rule number is returned
  * subsequent calls will process the items
  * representing gamma
- * 
+ *
  */
-{
+int yyselect() {
    int i;
    while (1) {
       i = pop();
@@ -1510,7 +1453,7 @@ int SEARCH_ALL = 0;
 int SEARCH_ONE = 0;
 char *to_be_checked;
 
-PRIVATE source[MAXLENGTH+1];
+static long source[MAXLENGTH+1];
 
 #define MAXVALIDTOKENS 500
 int VALID[MAXVALIDTOKENS+1];
@@ -1529,9 +1472,6 @@ extern int c_length;
 /*----------------------------------------------------------------------------*/
 
 
-PRIVATE get_list_of_valid_tokens(table, ref_number)
-   int table[];
-   int *ref_number;
 /*
  * store a list of valid tokens in table
  * let *ref_number be the number of valid tokens
@@ -1540,7 +1480,7 @@ PRIVATE get_list_of_valid_tokens(table, ref_number)
  *
  * as an option a nonterminal may be considered as a token
  */
-{
+static void get_list_of_valid_tokens(int table[], int *ref_number) {
    long count, i, k;
 
    count = 0;
@@ -1569,21 +1509,17 @@ PRIVATE get_list_of_valid_tokens(table, ref_number)
 }
 /*----------------------------------------------------------------------------*/
 
-PRIVATE set_current_token(tok, n)
-   int tok, n;
 /*
  * set_current_token (tok, n)
  * defines the variables that were formerly defined by the scanner
  */
-{
+static void set_current_token(int tok, int n) {
    sym = tok;
    yypos = n;
 }
 /*----------------------------------------------------------------------------*/
 
-progress_report(n)
-   int n;
-{
+void progress_report(int n) {
    tick++;
    fprintf(stderr, "\r");
    if (tick % 1000 == 0) {
@@ -1593,7 +1529,7 @@ progress_report(n)
 	 fprintf(stderr, " %2d/%2d", ACTUAL[k], VALID[k]);
       }
       for (; k < TICKWIDTH; k++) {
-	 fprintf(stderr, "      ", ACTUAL[k], VALID[k]);
+	 fprintf(stderr, " %2d/%2d", ACTUAL[k], VALID[k]);
       }
       if (k < n)
          fprintf(stderr, " ...");
@@ -1605,14 +1541,11 @@ progress_report(n)
 }
 /*----------------------------------------------------------------------------*/
 
-PRIVATE extend(n, dollars)
-   int n;
-   int dollars;
 /*
  * A phrase of length n has already been constructed
  * Build the possible continuations
  */
-{
+static void extend(int n, int dollars) {
    int valid_token[MAXVALIDTOKENS+1];
    int number_of_valid_tokens;
    int reset_thislist;
@@ -1715,9 +1648,7 @@ PRIVATE extend(n, dollars)
 }
 /*----------------------------------------------------------------------------*/
 
-print_sourcetext(n)
-   int n;
-{
+void print_sourcetext(int n) {
    int k;
 
    for (k = 0; k <= n; k++) {
@@ -1735,11 +1666,10 @@ print_sourcetext(n)
 }
 /*----------------------------------------------------------------------------*/
 
-PRIVATE amber()
 /*
  * generate and check
  */
-{
+static void amber() {
    last_item=0;
    initial_itemlist();
    tick = 0;
@@ -1748,11 +1678,7 @@ PRIVATE amber()
 
 /*----------------------------------------------------------------------------*/
 
-
-main(argc, argv)
-   int argc;
-   char **argv;
-{
+int main(int argc, char **argv) {
 
    process_argv(argc, argv);
 
@@ -1776,8 +1702,7 @@ main(argc, argv)
 }
 /*----------------------------------------------------------------------------*/
 
-run()
-{
+void run() {
    if (SEARCH_ALL)
       check_all_nonterms();
    else if (SEARCH_ONE)
@@ -1788,8 +1713,7 @@ run()
 }
 /*----------------------------------------------------------------------------*/
 
-check_all_nonterms()
-{
+void check_all_nonterms() {
    int i;
 
    yygrammar[2] = 0;
@@ -1808,9 +1732,7 @@ check_all_nonterms()
 }
 /*----------------------------------------------------------------------------*/
 
-check_nonterm(name)
-   char *name;
-{
+void check_nonterm(char *name) {
    int i;
    for (i = STARTUSERGRAMMAR; i <= c_length; i++) {
       if (yygrammar[i] < 0) {
@@ -1826,10 +1748,7 @@ check_nonterm(name)
 }
 /*----------------------------------------------------------------------------*/
 
-process_argv(argc, argv)
-   int argc;
-   char **argv;
-{
+void process_argv(int argc, char **argv) {
    int select_all;
    int perc;
    int max;
@@ -1921,10 +1840,7 @@ process_argv(argc, argv)
 }
 /*----------------------------------------------------------------------------*/
 
-int get_number(i, argc, str)
-   int i;
-   char *str;
-{
+int get_number(int i, int argc, char *str) {
    int p, n;
 
    if (i >= argc) err("number missing after last argument");
@@ -1939,9 +1855,7 @@ int get_number(i, argc, str)
 }
 /*----------------------------------------------------------------------------*/
 
-fill_group(lwb, upb, select_all, perc, max)
-   int lwb, upb, select_all, perc, max;
-{
+void fill_group(int lwb, int upb, int select_all, int perc, int max) {
    int k;
 
    for (k = lwb-1; k <= upb; k++) {
@@ -1952,19 +1866,13 @@ fill_group(lwb, upb, select_all, perc, max)
 }
 /*----------------------------------------------------------------------------*/
 
-argerr(n, arg, msg)
-   int n;
-   char *arg;
-   char *msg;
-{
+void argerr(int n, char *arg, char *msg) {
    fprintf(stderr, "argument %d (%s) : %s\n", n, arg, msg);
    exit(1);
 }
 /*----------------------------------------------------------------------------*/
 
-err(msg)
-   char *msg;
-{
+void err(char *msg) {
    fprintf(stderr, "error: %s\n", msg);
    exit(1);
 }
