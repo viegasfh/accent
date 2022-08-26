@@ -11,12 +11,12 @@
  *   it under the terms of the GNU General Public License as published by
  *   the Free Software Foundation; either version 2 of the License, or
  *   (at your option) any later version.
- * 
+ *
  *   This program is distributed in the hope that it will be useful,
  *   but WITHOUT ANY WARRANTY; without even the implied warranty of
  *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *   GNU General Public License for more details.
- * 
+ *
  *   You should have received a copy of the GNU General Public License
  *   along with this program; if not, write to the Free Software
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
@@ -86,10 +86,10 @@ long dot[ITEMLIMIT], back[ITEMLIMIT], left[ITEMLIMIT], sub[ITEMLIMIT];
  *   where
  *      D' =  M : * alpha beta
  *
- * L (left-pointer) 
+ * L (left-pointer)
  *
  * S (sub-pointer)
- * 
+ *
  * [ documentation to be completed in forthcoming release ....... ]
  *
  * If I is the index of an item < D, B, L, S > then
@@ -177,10 +177,10 @@ extern int yycoordinate[];
 /* defined in 'yygrammar.c' */
 
 extern int c_length;
- /*
-  * length of yygrammar
-  * defined in 'yygrammar.c'
-  */
+/*
+ * length of yygrammar
+ * defined in 'yygrammar.c'
+ */
 
 # define term_base 50000
 # define max_char    255
@@ -219,160 +219,168 @@ PRIVATE char * lookaheadtokenname;
 /* PRINT ROUTINES                                                             */
 /*============================================================================*/
 
-PRIVATE print_item(p)
-   int p;
 /*
  * print the item with index p
  */
-{
-   int i, b, e, l, k;
-   i = dot[p];
+PRIVATE print_item(int p) {
+  int i, b, e, l, k;
+  i = dot[p];
 
-   printf(" %d: ", p);
-   if (dot[p] == 0 && sub[p] == 0) {
-      printf("[ separator-item ]\n");
-      return;
-   }
-   if (i <= 5) {
-      b = 1;
-   }
-   else {
-      b = i-1;
-      while(yygrammar[b] >= 0) b--;
-      b += 2;
-   }
-   /* b points to the start of the rule */
+  printf(" %d: ", p);
+  if (dot[p] == 0 && sub[p] == 0) {
+    printf("[ separator-item ]\n");
+    return;
+  }
+  if (i <= 5) {
+    b = 1;
+  } else {
+    b = i - 1;
+    while (yygrammar[b] >= 0) {
+      b--;
+    }
+    b += 2;
+  }
+  /* b points to the start of the rule */
 
-   e = i;
-   while(yygrammar[e] >= 0) e++;
-   /* e points to the end of the rule, i.e. the lhscode */
+  e = i;
+  while (yygrammar[e] >= 0) {
+    e++;
+  }
+  /* e points to the end of the rule, i.e. the lhscode */
 
-   l = - yygrammar[e];
-   /* l is the lhs */
+  l = - yygrammar[e];
+  /* l is the lhs */
 
-   printf("%s :", yyprintname(l));
-   k = b+1;
-   /* k points to the first member */
-   while(yygrammar[k] > 0) {
-      if (k == i) printf(" *");
-      /* print member yygrammar[k] */
-      if (yygrammar[k] == eofsym) {
-	 printf(" <EOF>");
+  printf("%s :", yyprintname(l));
+  k = b + 1;
+  /* k points to the first member */
+  while (yygrammar[k] > 0) {
+    if (k == i) {
+      printf(" *");
+    }
+    /* print member yygrammar[k] */
+    if (yygrammar[k] == eofsym) {
+      printf(" <EOF>");
+    } else if (yygrammar[k] > term_base) {
+      if (yygrammar[k] < term_base + max_char + 1) {
+        printf(" '%c'", yygrammar[k] - term_base);
+      } else {
+        printf(" %s", yyprintname(yygrammar[k]));
       }
-      else if (yygrammar[k] > term_base) {
-	 if (yygrammar[k] < term_base+max_char+1) {
-	    printf(" '%c'", yygrammar[k]-term_base);
-         }
-	 else
-	    printf(" %s", yyprintname(yygrammar[k]));
-      }
-      else {
-	 printf(" %s", yyprintname(yygrammar[k]));
-      }
-      k++;
-   }
-   if (yygrammar[i] <= 0) printf(" *");
-   printf(" (back:%d sub:%d left:%d)\n", back[p], sub[p], left[p]);
+    } else {
+      printf(" %s", yyprintname(yygrammar[k]));
+    }
+    k++;
+  }
+  if (yygrammar[i] <= 0) {
+    printf(" *");
+  }
+  printf(" (back:%d sub:%d left:%d)\n", back[p], sub[p], left[p]);
 }
 
 /*----------------------------------------------------------------------------*/
 
-PRIVATE print_coordinate(i)
-   int i;
 /*
  * print source coordinate (of grammar file) with code i
  * the number encodes both, line and column information
  */
-{
-   int pos = yycoordinate[i];
-   int l = pos / 1000;
-   int c = pos % 1000;
+PRIVATE print_coordinate(int i) {
+  int pos = yycoordinate[i];
+  int l = pos / 1000;
+  int c = pos % 1000;
 
-   printf("line %d, col %d of grammar", l, c);
+  printf("line %d, col %d of grammar", l, c);
 }
 
 /*----------------------------------------------------------------------------*/
 
-PRIVATE print_tree(i)
-   int i;
 /*
  * print tree for item with index i
  */
-{
-   static int indent = 0;
-   int k;
+PRIVATE print_tree(int i) {
+  static int indent = 0;
+  int k;
 
-   /* rule number if item at end of rule */
-   if (yygrammar[dot[i]] < 0 ) {
-      /* end of rule */
-      for (k = 1; k <= indent; k++) printf("  ");
-      printf("%s alternative at ", yyprintname(-yygrammar[dot[i]]));
-      print_coordinate(dot[i]+1);
-      printf(" {\n");
-      indent++;
-   }
+  /* rule number if item at end of rule */
+  if (yygrammar[dot[i]] < 0) {
+    /* end of rule */
+    for (k = 1; k <= indent; k++) {
+      printf("  ");
+    }
+    printf("%s alternative at ", yyprintname(-yygrammar[dot[i]]));
+    print_coordinate(dot[i] + 1);
+    printf(" {\n");
+    indent++;
+  }
 
-   /* left brothers */
+  /* left brothers */
 
-   if (left[i]) print_tree(left[i]);
+  if (left[i]) {
+    print_tree(left[i]);
+  }
 
-   /* this son */
+  /* this son */
 
-   if (left[i]) {
-      int sym = yygrammar[dot[i]-1];
+  if (left[i]) {
+    int sym = yygrammar[dot[i] - 1];
 
-      if (sym > term_base) {
-         for (k = 1; k <= indent; k++) printf("  ");
-	 if (sym < term_base+max_char+1)
-            printf("'%c'\n", yygrammar[dot[i]-1]-term_base);
-	 else
-	    printf("%s\n", yyprintname(sym));
+    if (sym > term_base) {
+      for (k = 1; k <= indent; k++) {
+        printf("  ");
       }
-   }
+      if (sym < term_base + max_char + 1) {
+        printf("'%c'\n", yygrammar[dot[i] - 1] - term_base);
+      } else {
+        printf("%s\n", yyprintname(sym));
+      }
+    }
+  }
 
-   /* subtree for this son */
+  /* subtree for this son */
 
-   if (sub[i])  print_tree(sub[i]);
+  if (sub[i]) {
+    print_tree(sub[i]);
+  }
 
-   if (yygrammar[dot[i]] < 0 ) {
-      /* end of rule */
-      indent--;
-      for (k = 1; k <= indent; k++) printf("  ");
-      printf("}\n");
-   }
+  if (yygrammar[dot[i]] < 0) {
+    /* end of rule */
+    indent--;
+    for (k = 1; k <= indent; k++) {
+      printf("  ");
+    }
+    printf("}\n");
+  }
 }
 
 /*============================================================================*/
 /* DIRECTOR SETS                                                              */
 /*============================================================================*/
 
-PRIVATE int lookup_dirset(ruleptr)
-   long ruleptr;
 /*
  * Let 'rule' be the rule be the rule into which 'ruleptr' points.
  * Let 'tkn' be the code of the next token.
  * Return ('tkn' is in the director set of 'rule').
  */
-{
-   int p;
-   int rule;
-   int tkn;
+PRIVATE int lookup_dirset(long ruleptr) {
+  int p;
+  int rule;
+  int tkn;
 
-   /* find rule number */
-   p = ruleptr;
-   while (yygrammar[p] >= 0) p++;
-   p++;
-   rule = yygrammar[p];
+  /* find rule number */
+  p = ruleptr;
+  while (yygrammar[p] >= 0) {
+    p++;
+  }
+  p++;
+  rule = yygrammar[p];
 
-   tkn = lookaheadsym-term_base;
+  tkn = lookaheadsym - term_base;
 
-   return yydirset(rule, tkn);
+  return yydirset(rule, tkn);
 }
 
 /*----------------------------------------------------------------------------*/
 
-PRIVATE int is_viable (d)
-   int d;
 /*
  * d is a pointer into the encoded grammar
  * Returns true if the the symbol yygrammar[d] (token or nonterminal)
@@ -384,47 +392,42 @@ PRIVATE int is_viable (d)
  *
  * NOTE: the union of the director sets should be computed statically
  */
-{ 
-   if (yygrammar[d] >= term_base) {
-      /* token */
-      if (yygrammar[d] == lookaheadsym) {
-	 return 1;
-      }
-      else {
-	 return 0;
-      }
-   }
-
-   else if (yygrammar[d] > 0 ) {
-      /* nonterm */
-
-      int start;
-
-      start = yygrammar[d];
-      /* start points to the first rule for the nonterm */
-      do {
-	 int p;
-	 int rule;
-
-	 p = start+1;
-	 while (yygrammar[p] >= 0) {
-	    p++;
-	 }
-	 /* p now points to negative lhs encoding */
-	 rule = yygrammar[p+1];
-	 if (yydirset(rule, lookaheadsym-term_base)) {
-	    return 1;
-	 }
-	 start = yygrammar[start];
-      } while (start);
-
-      return 0;
-   }
-
-   else {
-      /* end of rule */
+PRIVATE int is_viable(int d) {
+  if (yygrammar[d] >= term_base) {
+    /* token */
+    if (yygrammar[d] == lookaheadsym) {
       return 1;
-   }
+    } else {
+      return 0;
+    }
+  } else if (yygrammar[d] > 0) {
+    /* nonterm */
+
+    int start;
+
+    start = yygrammar[d];
+    /* start points to the first rule for the nonterm */
+    do {
+      int p;
+      int rule;
+
+      p = start + 1;
+      while (yygrammar[p] >= 0) {
+        p++;
+      }
+      /* p now points to negative lhs encoding */
+      rule = yygrammar[p + 1];
+      if (yydirset(rule, lookaheadsym - term_base)) {
+        return 1;
+      }
+      start = yygrammar[start];
+    } while (start);
+
+    return 0;
+  } else {
+    /* end of rule */
+    return 1;
+  }
 }
 
 /*============================================================================*/
@@ -432,57 +435,60 @@ PRIVATE int is_viable (d)
 /*============================================================================*/
 
 int posforerrormsg = 0;
-PRIVATE syntaxerror()
 /*
  * Report syntax error and terminate
  */
-{
-   yypos = posforerrormsg;
-   yyerror("syntax error");
-   exit(1);
+PRIVATE syntaxerror() {
+  yypos = posforerrormsg;
+  yyerror("syntax error");
+  exit(1);
 }
 
 /*----------------------------------------------------------------------------*/
 
-PRIVATE Abort(msg)
-   char *msg;
 /*
  * emit msg and terminate
  */
-{
-   printf("%s\n", msg);
-   exit(1);
+PRIVATE Abort(char *msg) {
+  printf("%s\n", msg);
+  exit(1);
 }
 
 /*----------------------------------------------------------------------------*/
 
-PRIVATE table_full()
 /*
  * item table full
  */
-{
+PRIVATE table_full() {
 #if DYNAMICITEMS
-   ITEMLIMIT += ITEMINCR;
+  ITEMLIMIT += ITEMINCR;
 
-   dot = (long *) realloc(dot, ITEMLIMIT* sizeof(long));
-   if (! dot) yymallocerror();
-   back = (long *) realloc(back, ITEMLIMIT* sizeof(long));
-   if (! back) yymallocerror();
-   left = (long *) realloc(left, ITEMLIMIT* sizeof(long));
-   if (! left) yymallocerror();
-   sub = (long *) realloc(sub, ITEMLIMIT* sizeof(long));
-   if (! sub) yymallocerror();
+  dot = (long *) realloc(dot, ITEMLIMIT * sizeof(long));
+  if (! dot) {
+    yymallocerror();
+  }
+  back = (long *) realloc(back, ITEMLIMIT * sizeof(long));
+  if (! back) {
+    yymallocerror();
+  }
+  left = (long *) realloc(left, ITEMLIMIT * sizeof(long));
+  if (! left) {
+    yymallocerror();
+  }
+  sub = (long *) realloc(sub, ITEMLIMIT * sizeof(long));
+  if (! sub) {
+    yymallocerror();
+  }
 #else
-   Abort("fatal error: item table overflow [increase ITEMLIMIT in art.c]\n");
+  Abort("fatal error: item table overflow [increase ITEMLIMIT in art.c]\n");
 #endif
 }
 
 /*----------------------------------------------------------------------------*/
 
-PUBLIC yymallocerror()
-{
-   printf("running out of memory\n");
-   exit(1);
+PUBLIC yymallocerror() {
+  printf("running out of memory\n");
+  exit(1);
 }
 
 /*============================================================================*/
@@ -495,46 +501,43 @@ PUBLIC yymallocerror()
 
 #if HASHING
 
-int hash[HSIZE];
 /*
  * hash table to speed up lookup-function
  * if an item with back pointer b and dot d is entered
  * into the current item list
  * an entry with a corresponding hash code is set
  */
+int hash[HSIZE];
 
 /*----------------------------------------------------------------------------*/
 
-PRIVATE int clearhash ()
 /*
  * clear hash table
  */
-{
-   int i;
+PRIVATE int clearhash() {
+  int i;
 
-   for (i = 0; i<HSIZE; i++) hash[i] = 0;
+  for (i = 0; i < HSIZE; i++) {
+    hash[i] = 0;
+  }
 }
 
 /*----------------------------------------------------------------------------*/
 
-PRIVATE int hashed(d, b)
-   int d, b;
 /*
  * true if there is an entry entry for item with dot d and backpointer b
  */
-{
-   return hash[HASHCODE];
+PRIVATE int hashed(int d, int b) {
+  return hash[HASHCODE];
 }
 
 /*----------------------------------------------------------------------------*/
 
-PRIVATE sethash(d, b)
-   int d, b;
 /*
  * set entry for item with dot d and backpointer b
  */
-{
-   hash[HASHCODE] = 1;
+PRIVATE sethash(int d, int b) {
+  hash[HASHCODE] = 1;
 }
 #endif
 
@@ -542,7 +545,6 @@ PRIVATE sethash(d, b)
 /* TOKENS                                                                     */
 /*============================================================================*/
 
-PRIVATE readsym ()
 /*
  * read next token
  * current token: 'sym'
@@ -550,21 +552,21 @@ PRIVATE readsym ()
  * extend the list of lexical values by calling
  * next_lexval() provided by 'yygrammar.c'
  */
-{
-   long oldpos;
+PRIVATE readsym() {
+  long oldpos;
 
-   sym = lookaheadsym;
-   oldpos = lookaheadpos;
-   posforerrormsg = lookaheadpos;
+  sym = lookaheadsym;
+  oldpos = lookaheadpos;
+  posforerrormsg = lookaheadpos;
 
-   if (lookaheadsym != 50000 /*EOF*/) {
-      lookaheadsym = yylex()+term_base;
-      lookaheadpos = yypos;
-   }
-   next_lexval();
-   /*
-   yypos = oldpos;
-   */
+  if (lookaheadsym != 50000 /*EOF*/) {
+    lookaheadsym = yylex() + term_base;
+    lookaheadpos = yypos;
+  }
+  next_lexval();
+  /*
+  yypos = oldpos;
+  */
 }
 
 /*============================================================================*/
@@ -572,228 +574,211 @@ PRIVATE readsym ()
 /*============================================================================*/
 
 
-PRIVATE int getprio(subptr)
-   int subptr;
 
-   /* subptr points to an item */
-   /* return the prio of corresponding rule */
-{
-   int i;
+/* subptr points to an item */
+/* return the prio of corresponding rule */
+PRIVATE int getprio(int subptr) {
+  int i;
 
-   /* find end of rule */
-   i = dot[subptr];
-   while (yygrammar[i] > 0) i++;
-   /* i points to the negative lhs encoding */
-   i++;
-   /* i now points to the rule number, this is also the index of the prio */
+  /* find end of rule */
+  i = dot[subptr];
+  while (yygrammar[i] > 0) {
+    i++;
+  }
+  /* i points to the negative lhs encoding */
+  i++;
+  /* i now points to the rule number, this is also the index of the prio */
 
-   return yyannotation[i];
+  return yyannotation[i];
 }
 
 /*----------------------------------------------------------------------------*/
 
-PRIVATE int getmemberannotation(i)
-   int i;
+/* i is the index of a member */
+/* return the annotation of the member before the dot */
+PRIVATE int getmemberannotation(int i) {
+  int grammarindex, annotation;
 
-   /* i is the index of a member */
-   /* return the annotation of the member before the dot */
-{
-   int grammarindex, annotation;
-
-   grammarindex = dot[i]-1;
-   annotation = yyannotation[grammarindex];
-   return annotation;
+  grammarindex = dot[i] - 1;
+  annotation = yyannotation[grammarindex];
+  return annotation;
 }
 
 /*============================================================================*/
 /* AMBIGUITY RESOLUTION                                                       */
 /*============================================================================*/
 
-PRIVATE int test_for_cycle(subtree, container)
-   int subtree;
-   int container;
 /*
  * return true if
  * the tree to which 'container' (a "subpointer" of an item) points
  * contains the tree to which 'subtree' (also a "subpointer") points
  */
-{
-   if (container < subtree) {
-      /* an earlier item cannot refer a later one */ 
-      return 0;
-   }
-   if (container == subtree) {
+PRIVATE int test_for_cycle(int subtree, int container) {
+  if (container < subtree) {
+    /* an earlier item cannot refer a later one */
+    return 0;
+  }
+  if (container == subtree) {
+    return 1;
+  }
+  if (sub[container]) {
+    if (test_for_cycle(subtree, sub[container])) {
       return 1;
-   }
-   if (sub[container]) {
-      if (test_for_cycle(subtree, sub[container]))
-         return 1;
-   }
-   if (left[container]) {
-      if (test_for_cycle(subtree, left[container]))
-         return 1;
-   }
-   return 0;
+    }
+  }
+  if (left[container]) {
+    if (test_for_cycle(subtree, left[container])) {
+      return 1;
+    }
+  }
+  return 0;
 }
 
 /*----------------------------------------------------------------------------*/
 
 
-PRIVATE conjunctive_ambiguity(i, d, l, s)
-   int i, d, l, s;
 /*
  * The item with index i
  * and an item with dot d, leftpointer l, and subpointer s
  * introduce a conjunctive ambiguity
  */
-{
-   if (left[i] != l) {
+PRIVATE conjunctive_ambiguity(int i, int d, int l, int s) {
+  if (left[i] != l) {
 
-      /* Conjunctive Ambiguity */
+    /* Conjunctive Ambiguity */
 
-      int left1, left2, sub1, sub2, annotation;
-      int selected_left, selected_sub;
+    int left1, left2, sub1, sub2, annotation;
+    int selected_left, selected_sub;
 
-      left1 = left[i];
-      sub1 = sub[i];
+    left1 = left[i];
+    sub1 = sub[i];
 
-      left2 = l;
-      sub2 = s;
+    left2 = l;
+    sub2 = s;
 
-      annotation = getmemberannotation(i);
+    annotation = getmemberannotation(i);
 
-      if (annotation == 1) {
-	 /* %short */
+    if (annotation == 1) {
+      /* %short */
 
-	 if (left1 > left2) {
-	    selected_left = left1;
-	    selected_sub = sub1;
-	 }
-	 else {
-	    selected_left = left2;
-	    selected_sub = sub2;
-	 }
+      if (left1 > left2) {
+        selected_left = left1;
+        selected_sub = sub1;
+      } else {
+        selected_left = left2;
+        selected_sub = sub2;
       }
-      else if (annotation == 2) {
-	 /* %long */
+    } else if (annotation == 2) {
+      /* %long */
 
-	 if (left2 > left1) {
-	    selected_left = left1;
-	    selected_sub = sub1;
-	 }
-	 else {
-	    selected_left = left2;
-	    selected_sub = sub2;
-	 }
+      if (left2 > left1) {
+        selected_left = left1;
+        selected_sub = sub1;
+      } else {
+        selected_left = left2;
+        selected_sub = sub2;
       }
-      else if (annotation == 0) {
-	 /* annotation == undef */
+    } else if (annotation == 0) {
+      /* annotation == undef */
 
-	 int old_sub, old_left;
+      int old_sub, old_left;
 
-	 printf("\n");
-	 printf("GRAMMAR DEBUG INFORMATION\n");
-	 printf("\n");
-	 printf("Grammar ambiguity detected.\n");
+      printf("\n");
+      printf("GRAMMAR DEBUG INFORMATION\n");
+      printf("\n");
+      printf("Grammar ambiguity detected.\n");
 
-	 {
-	    int k;
-	    k = dot[i];
-	    while (yygrammar[k] > 0) k++;
-	    printf("There are two different parses\n");
-	    printf("for the beginning of ``%s'', alternative at ",
-	       yyprintname(-yygrammar[k]));
-	    print_coordinate(k+1);
-	    printf(",\n");
-	 }
-	 printf("upto and containing ``%s'' at ", yyprintname(yygrammar[d-1]));
-	 print_coordinate(d-1);
-	 printf(".\n");
-
-	 printf("\n");
-	 printf("PARSE 1\n");
-	 printf("-------\n");
-	 printf("\n");
-	 print_tree(i);
-
-	 printf("\n");
-	 printf("PARSE 2\n");
-	 printf("-------\n");
-	 printf("\n");
-	 print_tree(last_item+1);
-
-	 printf("\n");
-	 printf("For ``%s'' at ", yyprintname(yygrammar[d-1]));
-	 print_coordinate(d-1);
-	 printf(",\n");
-	 if (left1 > left2) {
-	    printf("use %%short annotation to select first parse,\n");
-	    printf("use %%long annotation to select second parse.\n");
-	 }
-	 else {
-	    printf("use %%long annotation to select first parse,\n");
-	    printf("use %%short annotation to select second parse.\n");
-	 }
-
-	 printf("\nEND OF GRAMMAR DEBUG INFORMATION\n\n");
-         yypos = posforerrormsg;
-	 yyerror("source text uncovers unhandled grammar ambiguity");
-	 exit(1);
-
-	 selected_left = l;
-	 selected_sub = s;
+      {
+        int k;
+        k = dot[i];
+        while (yygrammar[k] > 0) {
+          k++;
+        }
+        printf("There are two different parses\n");
+        printf("for the beginning of ``%s'', alternative at ",
+               yyprintname(-yygrammar[k]));
+        print_coordinate(k + 1);
+        printf(",\n");
       }
-      else {
-         /* user -N */
-         int r;
+      printf("upto and containing ``%s'' at ", yyprintname(yygrammar[d - 1]));
+      print_coordinate(d - 1);
+      printf(".\n");
 
-	 if (left1 > left2) {
-            r = confilter(-annotation, i, last_item+1);
+      printf("\n");
+      printf("PARSE 1\n");
+      printf("-------\n");
+      printf("\n");
+      print_tree(i);
 
-            if (r == 1) {
-               /* %short */
-               selected_left = left1;
-               selected_sub = sub1;
-            }
-            else if (r == 2) {
-               /* %long */
-               selected_left = left2;
-               selected_sub = sub2;
-            }
-            else {
-               printf("user function `confilter' returns invalid value\n");
-               exit(1);
-            }
-         }
-         else {
-            r = confilter(-annotation, last_item+1, i);
+      printf("\n");
+      printf("PARSE 2\n");
+      printf("-------\n");
+      printf("\n");
+      print_tree(last_item + 1);
 
-            if (r == 2) {
-               /* %long */
-               selected_left = left1;
-               selected_sub = sub1;
-            }
-            else if (r == 1) {
-               /* %short */
-               selected_left = left2;
-               selected_sub = sub2;
-            }
-            else {
-               printf("user function `confilter' returns invalid value\n");
-               exit(1);
-            }
-         }
-            
+      printf("\n");
+      printf("For ``%s'' at ", yyprintname(yygrammar[d - 1]));
+      print_coordinate(d - 1);
+      printf(",\n");
+      if (left1 > left2) {
+        printf("use %%short annotation to select first parse,\n");
+        printf("use %%long annotation to select second parse.\n");
+      } else {
+        printf("use %%long annotation to select first parse,\n");
+        printf("use %%short annotation to select second parse.\n");
       }
 
-      left[i] = selected_left;
-      sub[i] = selected_sub;
-   }
+      printf("\nEND OF GRAMMAR DEBUG INFORMATION\n\n");
+      yypos = posforerrormsg;
+      yyerror("source text uncovers unhandled grammar ambiguity");
+      exit(1);
+
+      selected_left = l;
+      selected_sub = s;
+    } else {
+      /* user -N */
+      int r;
+
+      if (left1 > left2) {
+        r = confilter(-annotation, i, last_item + 1);
+
+        if (r == 1) {
+          /* %short */
+          selected_left = left1;
+          selected_sub = sub1;
+        } else if (r == 2) {
+          /* %long */
+          selected_left = left2;
+          selected_sub = sub2;
+        } else {
+          printf("user function `confilter' returns invalid value\n");
+          exit(1);
+        }
+      } else {
+        r = confilter(-annotation, last_item + 1, i);
+
+        if (r == 2) {
+          /* %long */
+          selected_left = left1;
+          selected_sub = sub1;
+        } else if (r == 1) {
+          /* %short */
+          selected_left = left2;
+          selected_sub = sub2;
+        } else {
+          printf("user function `confilter' returns invalid value\n");
+          exit(1);
+        }
+      }
+
+    }
+
+    left[i] = selected_left;
+    sub[i] = selected_sub;
+  }
 }
 
 /*----------------------------------------------------------------------------*/
-int disfilter(n1, n2, p1, p2)
-   int n1, n2, p1, p2;
 /*
  * Called when a disjunctive ambiguity is detected and there are
  * "%disfilter n" annotations instead of "%prio n".
@@ -803,159 +788,140 @@ int disfilter(n1, n2, p1, p2)
  * If the function returns 1, p1 will be selected,
  * if the function returns 2, p2 will be selected,
  */
-{
-   /* dummy implementation for testing purposes */
-   /* should be replaced by user code */
-   if (n1 > n2) return 1;
-   if (n1 < n2) return 2;
-   return 3;
+int disfilter(int n1, int n2, int p1, int p2) {
+  /* dummy implementation for testing purposes */
+  /* should be replaced by user code */
+  if (n1 > n2) {
+    return 1;
+  }
+  if (n1 < n2) {
+    return 2;
+  }
+  return 3;
 }
 
-int confilter(n, p1, p2)
-   int n, p1, p2;
-/*
- * Called when a conjunctive ambiguity is detected and there is a
- * "%confilter n" annotation instead of "%long"/"%short".
- * n is the value specified in the annotation.
- * p1 and p2 are conflicting items,
- * where p1 is the item that would be selected if the
- * annotation would be "%short",
- * p2 is the item that would be selected if the
- * annotation would be "%long".
- * If the function returns 1, p1 will be selected ("%short"),
- * if the function returns 2, p2 will be selected ("%long"),
- */
-{
-   /* dummy implementation for testing purposes */
-   /* should be replaced by user code */
-   return n;
+
+int confilter(int n, int p1, int p2) {
+  /* dummy implementation for testing purposes */
+  /* should be replaced by user code */
+  return n;
 }
 /*----------------------------------------------------------------------------*/
 
-PRIVATE disjunctive_ambiguity(i, d, l, s)
-   int i, d, l, s;
 /*
  * The item with index i
  * and an item with dot d, leftpointer l, and subpointer s
  * introduce a disjunctive ambiguity
  */
-{
-   /* Disjunctive Ambiguity */
+PRIVATE disjunctive_ambiguity(int i, int d, int l, int s) {
+  /* Disjunctive Ambiguity */
 
-   int sub1, sub2, rule1, rule2, prio1, prio2;
+  int sub1, sub2, rule1, rule2, prio1, prio2;
 
-   sub1 = sub[i];
-   sub2 = s;
+  sub1 = sub[i];
+  sub2 = s;
 
-   prio1 = getprio(sub1);
-   prio2 = getprio(sub2);
+  prio1 = getprio(sub1);
+  prio2 = getprio(sub2);
 
-   if (prio1 == -1 || prio2 == -1) {
-      /* undefined prio */
+  if (prio1 == -1 || prio2 == -1) {
+    /* undefined prio */
 
-      printf("\n");
-      printf("GRAMMAR DEBUG INFORMATION\n");
-      printf("\n");
-      printf("Grammar ambiguity detected.\n");
+    printf("\n");
+    printf("GRAMMAR DEBUG INFORMATION\n");
+    printf("\n");
+    printf("Grammar ambiguity detected.\n");
+    printf
+    ("Two different ``%s'' derivation trees for the same phrase.\n",
+     yyprintname(yygrammar[d - 1]));
+
+    printf("\n");
+    printf("TREE 1\n");
+    printf("------\n");
+    printf("\n");
+    print_tree(sub[i]);
+    printf("\n");
+    printf("TREE 2\n");
+    printf("------\n");
+    printf("\n");
+    print_tree(s);
+    printf("\n");
+
+    if (test_for_cycle(s, sub[i])) {
+      /* not possible */
+      printf("Tree 1 contains tree 2 as subtree.\n");
       printf
-	 ("Two different ``%s'' derivation trees for the same phrase.\n",
-	 yyprintname(yygrammar[d-1]));
+      ("Use %%prio annotation to select the second tree.\n");
+      printf("An annotation selecting the first tree\n");
+      printf("would not resolve the ambiguity.\n");
+    } else if (test_for_cycle(sub[i], s)) {
+      printf("Tree 2 contains tree 1 as subtree.\n");
+      printf
+      ("Use %%prio annotation to select the first tree.\n");
+      printf("An annotation selecting the second tree\n");
+      printf("would not resolve the ambiguity.\n");
+    } else {
+      printf("Use %%prio annotation to select an alternative.\n");
+    }
 
-      printf("\n");
-      printf("TREE 1\n");
-      printf("------\n");
-      printf("\n");
-      print_tree(sub[i]);
-      printf("\n");
-      printf("TREE 2\n");
-      printf("------\n");
-      printf("\n");
-      print_tree(s);
-      printf("\n");
+    printf("\nEND OF GRAMMAR DEBUG INFORMATION\n\n");
 
-      if (test_for_cycle(s, sub[i])) {
-	 /* not possible */
-	 printf("Tree 1 contains tree 2 as subtree.\n");
-	 printf
-	    ("Use %%prio annotation to select the second tree.\n");
-	 printf("An annotation selecting the first tree\n");
-	 printf("would not resolve the ambiguity.\n");
-      }
-      else if (test_for_cycle(sub[i], s)) {
-	 printf("Tree 2 contains tree 1 as subtree.\n");
-	 printf
-	    ("Use %%prio annotation to select the first tree.\n");
-	 printf("An annotation selecting the second tree\n");
-	 printf("would not resolve the ambiguity.\n");
-      }
-      else {
-	 printf("Use %%prio annotation to select an alternative.\n");
-      }
+    yypos = posforerrormsg;
+    yyerror("source text uncovers unhandled grammar ambiguity");
+    exit(1);
 
-      printf("\nEND OF GRAMMAR DEBUG INFORMATION\n\n");
+  } else if ((prio1 < 0) || (prio2 < 0)) {
+    int r;
 
-      yypos = posforerrormsg;
-      yyerror("source text uncovers unhandled grammar ambiguity");
-      exit(1);
-
-   }
-   else if ((prio1 < 0) || (prio2 < 0)) {
-      int r;
-
-      r = disfilter(-prio1-1, -prio2-1, sub[i], s);
-      if (r == 1) {
-         /* use old value */
-      } else if (r == 2) {
-#if DYNAMICCYCLECHECK
-         if (s >= i) {
-            if (test_for_cycle(i, s)) {
-               printf("\n");
-               printf("GRAMMAR DEBUG INFORMATION\n");
-               printf("\n");
-               printf("Annotation for ``%s'' allows cyclic derivation.\n",
-                  yyprintname(yygrammar[d-1]));
-               printf("\nEND OF GRAMMAR DEBUG INFORMATION\n\n");
-               printf("-b-\n");
-               yyerror("source text uncovers unhandled grammar ambiguity");
-               exit(1);
-            }
-         }
-#endif
-         sub[i] = s;
-      }
-      else {
-         printf("user function `disfilter' returns invalid value\n");
-         exit(1);
-      }
-   }
-   else if (prio1 > prio2) {
-   }
-   else {
+    r = disfilter(-prio1 - 1, -prio2 - 1, sub[i], s);
+    if (r == 1) {
+      /* use old value */
+    } else if (r == 2) {
 #if DYNAMICCYCLECHECK
       if (s >= i) {
-	 if (test_for_cycle(i, s)) {
-	    printf("\n");
-	    printf("GRAMMAR DEBUG INFORMATION\n");
-	    printf("\n");
-	    printf("Annotation for ``%s'' allows cyclic derivation.\n",
-	       yyprintname(yygrammar[d-1]));
-	    printf("\nEND OF GRAMMAR DEBUG INFORMATION\n\n");
-            yypos = posforerrormsg;
-	    yyerror("source text uncovers unhandled grammar ambiguity");
-	    exit(1);
-	 }
+        if (test_for_cycle(i, s)) {
+          printf("\n");
+          printf("GRAMMAR DEBUG INFORMATION\n");
+          printf("\n");
+          printf("Annotation for ``%s'' allows cyclic derivation.\n",
+                 yyprintname(yygrammar[d - 1]));
+          printf("\nEND OF GRAMMAR DEBUG INFORMATION\n\n");
+          printf("-b-\n");
+          yyerror("source text uncovers unhandled grammar ambiguity");
+          exit(1);
+        }
       }
 #endif
       sub[i] = s;
-   }
+    } else {
+      printf("user function `disfilter' returns invalid value\n");
+      exit(1);
+    }
+  } else if (prio1 > prio2) {
+  } else {
+#if DYNAMICCYCLECHECK
+    if (s >= i) {
+      if (test_for_cycle(i, s)) {
+        printf("\n");
+        printf("GRAMMAR DEBUG INFORMATION\n");
+        printf("\n");
+        printf("Annotation for ``%s'' allows cyclic derivation.\n",
+               yyprintname(yygrammar[d - 1]));
+        printf("\nEND OF GRAMMAR DEBUG INFORMATION\n\n");
+        yypos = posforerrormsg;
+        yyerror("source text uncovers unhandled grammar ambiguity");
+        exit(1);
+      }
+    }
+#endif
+    sub[i] = s;
+  }
 }
 
 /*============================================================================*/
 /* EARLEY                                                                     */
 /*============================================================================*/
 
-PRIVATE SEARCH(d, b, l, s)
-   long d, b, l, s;
 /*
  * An item with dot d, backpointer b, leftpointer l, subpointer s
  * has been preliminary added to the current list at position
@@ -967,39 +933,39 @@ PRIVATE SEARCH(d, b, l, s)
  * if the backpointer/subpointer is the same
  * the new item is already present
  */
-{
-   register long i;
+PRIVATE SEARCH(int d, int b, int l, int s) {
+  register long i;
 
-   i = thislist;
+  i = thislist;
 
-   while ((dot[i]!=d)||(back[i]!=b)) i++;
+  while ((dot[i] != d) || (back[i] != b)) {
+    i++;
+  }
 
-   if (i==last_item+1) {
-      last_item++;
-      if (last_item==(ITEMLIMIT-2)) table_full();
+  if (i == last_item + 1) {
+    last_item++;
+    if (last_item == (ITEMLIMIT - 2)) {
+      table_full();
+    }
 #if HASHING
-      sethash(d, b);
+    sethash(d, b);
 #endif
-   }
-   else {
+  } else {
 
 #if DETECTAMBIGUITY
-      if (left[i] != l) {
-	 conjunctive_ambiguity(i, d, l, s);
+    if (left[i] != l) {
+      conjunctive_ambiguity(i, d, l, s);
 
-      }
-      else if (sub[i] != s) {
-	 disjunctive_ambiguity(i, d, l, s);
-      }
+    } else if (sub[i] != s) {
+      disjunctive_ambiguity(i, d, l, s);
+    }
 #endif
 
-   }
+  }
 }
 
 /*----------------------------------------------------------------------------*/
 
-PRIVATE additem ( d, b, l, s)
-   long d, b, l, s;
 /*
  * add an item with dot d, backpointer b, leftpointer l, and subpointer s
  * to the current item list
@@ -1011,32 +977,32 @@ PRIVATE additem ( d, b, l, s)
  * it is not neccessary to invoke SEARCH because the item is unique in the
  * current list
  */
-{
+PRIVATE additem(int d, int b, int l, int s) {
 
-   /* sentinel */
-   dot [ last_item+1 ] = d;
-   back[ last_item+1 ] = b;
-   left[ last_item+1 ] = l;
-   sub [ last_item+1 ] = s;
+  /* sentinel */
+  dot [ last_item + 1 ] = d;
+  back[ last_item + 1 ] = b;
+  left[ last_item + 1 ] = l;
+  sub [ last_item + 1 ] = s;
 
 #if HASHING
-   if (! hashed(d, b)) {
-      last_item++; if (last_item==(ITEMLIMIT-2)) table_full();
-      sethash(d, b);
-   }
-   else {
+  if (! hashed(d, b)) {
+    last_item++;
+    if (last_item == (ITEMLIMIT - 2)) {
+      table_full();
+    }
+    sethash(d, b);
+  } else {
 #endif
-      SEARCH(d, b, l, s);
+    SEARCH(d, b, l, s);
 #if HASHING
-   }
+  }
 #endif
 
 }
 
 /*----------------------------------------------------------------------------*/
 
-PRIVATE kernel (prevlist)
-   long prevlist;
 /*
  * compute the kernel of the next item list
  * prevlist points to the previous list
@@ -1048,36 +1014,33 @@ PRIVATE kernel (prevlist)
  *       < N : alpha * yygrammar[i] beta, B,_,_ > is in IL[i-1] and has index I
  *    }
  */
-{
-   long i;
-   i = prevlist;
-   while (dot[i]) {
-      if (yygrammar[dot[i]] >= term_base )
-      {
-         if (yygrammar[dot[i]] == sym) {
+PRIVATE kernel(long prevlist) {
+  long i;
+  i = prevlist;
+  while (dot[i]) {
+    if (yygrammar[dot[i]] >= term_base) {
+      if (yygrammar[dot[i]] == sym) {
 #if CHECKVIABLE
-	    if (is_viable(dot[i]+1) || lookaheadswitchedoff)
+        if (is_viable(dot[i] + 1) || lookaheadswitchedoff)
 #endif
-	    {
-	       additem(dot[i]+1,back[i],i,0);
-	    }
+        {
+          additem(dot[i] + 1, back[i], i, 0);
+        }
 #if CHECKVIABLE
-            else {
+        else {
 #if TRACE
-               printf("rejected by is_viable (kernel)\n");
+          printf("rejected by is_viable (kernel)\n");
 #endif
-            }
+        }
 #endif
-         }
       }
-      i++;
-   }
+    }
+    i++;
+  }
 }
 
 /*----------------------------------------------------------------------------*/
 
-PRIVATE predictor (item)
-   long item;
 /*
  * predictor step for item 'item'
  *
@@ -1094,40 +1057,40 @@ PRIVATE predictor (item)
  * and there is a rule N : gamma
  * B' is a reference to IL[i]
  */
-{
-   long ruleptr;
-  
-   ruleptr = yygrammar[dot[item]];
-   do {
-      int old = last_item;
+PRIVATE predictor(long item) {
+  long ruleptr;
+
+  ruleptr = yygrammar[dot[item]];
+  do {
+    int old = last_item;
 
 #if ! LOOKAHEAD
-      /* (1) ORIGINAL VERSION */
-      additem(ruleptr+1,thislist,0,0);
-      if ((back[last_item]==thislist) && (last_item>old)) specialitemadded=1;
+    /* (1) ORIGINAL VERSION */
+    additem(ruleptr + 1, thislist, 0, 0);
+    if ((back[last_item] == thislist) && (last_item > old)) {
+      specialitemadded = 1;
+    }
 #else
-      /* (2) IMPROVEMENT
-	 add test: is current symbol (lookaheadsym)
-	 in director set of that rule ?
-      */
-         if (lookup_dirset(ruleptr) || lookaheadswitchedoff) {
-            additem(ruleptr+1,thislist,0,0);
-	    if ((back[last_item]==thislist) && (last_item>old))
-	       specialitemadded=1;
-	 }
-	 else {
-	 }
+    /* (2) IMPROVEMENT
+    add test: is current symbol (lookaheadsym)
+     in director set of that rule ?
+        */
+    if (lookup_dirset(ruleptr) || lookaheadswitchedoff) {
+      additem(ruleptr + 1, thislist, 0, 0);
+      if ((back[last_item] == thislist) && (last_item > old)) {
+        specialitemadded = 1;
+      }
+    } else {
+    }
 #endif
 
-      ruleptr=yygrammar[ruleptr];
+    ruleptr = yygrammar[ruleptr];
 
-   } while (ruleptr);
+  } while (ruleptr);
 }
 
 /*----------------------------------------------------------------------------*/
 
-PRIVATE completer (item)
-   long item;
 /*
  * completer step for item 'item'
  *
@@ -1146,46 +1109,46 @@ PRIVATE completer (item)
  *    < N : alpha M * beta, B',I,ITEM >
  * if there is not yet an item with the first two components
  */
+PRIVATE completer(long item) {
+  long lhs, old;
+  register int i;
+  int dot_i;
 
-{
-   long lhs, old;
-   register int i;
-   int dot_i;
-  
-   lhs=-yygrammar[dot[item]];
-   i=back[item];
+  lhs = -yygrammar[dot[item]];
+  i = back[item];
 
-   /* loop over all items in earlier item list */
-   dot[last_item+1] = 0; /* sentinel */
-   while (dot_i = dot[i]) {
+  /* loop over all items in earlier item list */
+  dot[last_item + 1] = 0; /* sentinel */
+  while (dot_i = dot[i]) {
 
-      if (yygrammar[/*dot[i]*/dot_i]==lhs) {
+    if (yygrammar[/*dot[i]*/dot_i] == lhs) {
 
 #if CHECKVIABLE
-	 if (is_viable(/*dot[i]*/dot_i+1) || lookaheadswitchedoff)
+      if (is_viable(/*dot[i]*/dot_i + 1) || lookaheadswitchedoff)
 #endif
-	 {
-            old=last_item;
-	    additem(/*dot[i]*/dot_i+1,back[i],i,item);
-            dot[last_item+1] = 0; /* sentinel */
-	    if ((back[i]==thislist) && (last_item>old)) specialitemadded=1;
-	 }
+      {
+        old = last_item;
+        additem(/*dot[i]*/dot_i + 1, back[i], i, item);
+        dot[last_item + 1] = 0; /* sentinel */
+        if ((back[i] == thislist) && (last_item > old)) {
+          specialitemadded = 1;
+        }
+      }
 #if CHECKVIABLE
-         else {
+      else {
 #if TRACE
-            printf("rejected by is_viable (completer)\n");
-#endif
-         }
+        printf("rejected by is_viable (completer)\n");
 #endif
       }
+#endif
+    }
 
-      i++;
-   }
+    i++;
+  }
 }
 
 /*----------------------------------------------------------------------------*/
 
-PRIVATE closure ()
 /*
  * compute closure for the kernel of the current item list
  *
@@ -1193,28 +1156,30 @@ PRIVATE closure ()
  * apply PREDICTOR and COMPLETOR
  * as long as there are changes
  */
-{
-   long i;
-   int oldend;
+PRIVATE closure() {
+  long i;
+  int oldend;
 
-   specialitemadded=0;
-   do {
-      i=thislist;
-      oldend=last_item;
-      while (i<=last_item) {
-         if (yygrammar[dot[i]]<0) completer(i);
-         else if (yygrammar[dot[i]]<term_base) predictor(i);
-         i++;
+  specialitemadded = 0;
+  do {
+    i = thislist;
+    oldend = last_item;
+    while (i <= last_item) {
+      if (yygrammar[dot[i]] < 0) {
+        completer(i);
+      } else if (yygrammar[dot[i]] < term_base) {
+        predictor(i);
       }
-   /*
-   } while (specialitemadded && (oldend!=last_item));
-   */
-   } while ((oldend!=last_item));
+      i++;
+    }
+    /*
+    } while (specialitemadded && (oldend!=last_item));
+    */
+  } while ((oldend != last_item));
 }
 
 /*----------------------------------------------------------------------------*/
 
-PRIVATE initial_itemlist()
 /*
  * compute initial item list
  * its kernel is given by the item
@@ -1222,28 +1187,36 @@ PRIVATE initial_itemlist()
  * for which the closure is computed
  *
  */
-{
-   
-#if DYNAMICITEMS
-   ITEMLIMIT = ITEMINCR;
+PRIVATE initial_itemlist() {
 
-   dot = (long *) malloc(ITEMLIMIT* sizeof(long));
-   if (! dot) yymallocerror();
-   back = (long *) malloc(ITEMLIMIT* sizeof(long));
-   if (! back) yymallocerror();
-   left = (long *) malloc(ITEMLIMIT* sizeof(long));
-   if (! left) yymallocerror();
-   sub = (long *) malloc(ITEMLIMIT* sizeof(long));
-   if (! sub) yymallocerror();
+#if DYNAMICITEMS
+  ITEMLIMIT = ITEMINCR;
+
+  dot = (long *) malloc(ITEMLIMIT * sizeof(long));
+  if (! dot) {
+    yymallocerror();
+  }
+  back = (long *) malloc(ITEMLIMIT * sizeof(long));
+  if (! back) {
+    yymallocerror();
+  }
+  left = (long *) malloc(ITEMLIMIT * sizeof(long));
+  if (! left) {
+    yymallocerror();
+  }
+  sub = (long *) malloc(ITEMLIMIT * sizeof(long));
+  if (! sub) {
+    yymallocerror();
+  }
 #endif
 
-  thislist=1;
+  thislist = 1;
 #if HASHING
   clearhash();
 #endif
-  additem(2,1,0,0); /*  YYSTART : * UserRoot EOF  */
+  additem(2, 1, 0, 0); /*  YYSTART : * UserRoot EOF  */
   closure();
-  additem(0,0,0,0); /* terminator */
+  additem(0, 0, 0, 0); /* terminator */
 }
 
 
@@ -1251,138 +1224,136 @@ PRIVATE initial_itemlist()
 
 int itemlist_empty;
 
-PRIVATE next_itemlist()
 /*
  * compute next item list:
  * kernel and closure
  */
-{
-   long prevlist;
+PRIVATE next_itemlist() {
+  long prevlist;
 
 
 #if HASHING
-   clearhash();
+  clearhash();
 #endif
 
-   itemlist_empty = 0;
-   prevlist=thislist;
-   thislist=last_item+1;
+  itemlist_empty = 0;
+  prevlist = thislist;
+  thislist = last_item + 1;
 
-   kernel(prevlist);
-   if (last_item<thislist) {
-      itemlist_empty = 1;
-   }
-   closure();
-   additem(0,0,0,0);
+  kernel(prevlist);
+  if (last_item < thislist) {
+    itemlist_empty = 1;
+  }
+  closure();
+  additem(0, 0, 0, 0);
 }
 
 /*----------------------------------------------------------------------------*/
 
-PRIVATE itemlist_sequence()
 /*
  * compute the sequence of item lists:
  * initial_itemlist
  * and then next_itemlist for each input token
  */
-{
+PRIVATE itemlist_sequence() {
 #if ERRPOSCORRECTION
-   int saved_sym;
-   int saved_yypos;
-   int saved_thislist;
-   int saved_last_item;
-   int saved_saved_sym;
-   int saved_saved_yypos;
-   int saved_saved_thislist;
-   int saved_saved_last_item;
-   int initial_list;
+  int saved_sym;
+  int saved_yypos;
+  int saved_thislist;
+  int saved_last_item;
+  int saved_saved_sym;
+  int saved_saved_yypos;
+  int saved_saved_thislist;
+  int saved_saved_last_item;
+  int initial_list;
 #endif
-   last_item=0;
-   initial_itemlist();
+  last_item = 0;
+  initial_itemlist();
 
 #if ERRPOSCORRECTION
-   saved_sym = sym;
-   saved_yypos = yypos;
-   saved_thislist = thislist;
-   initial_list = thislist;
-   saved_last_item = last_item;
+  saved_sym = sym;
+  saved_yypos = yypos;
+  saved_thislist = thislist;
+  initial_list = thislist;
+  saved_last_item = last_item;
 #endif
-   do {
-      readsym();
+  do {
+    readsym();
 
 #if ERRPOSCORRECTION
-      saved_saved_sym = saved_sym;
-      saved_saved_yypos = saved_yypos;
-      saved_saved_thislist = saved_thislist;
-      saved_saved_last_item = saved_last_item;
+    saved_saved_sym = saved_sym;
+    saved_saved_yypos = saved_yypos;
+    saved_saved_thislist = saved_thislist;
+    saved_saved_last_item = saved_last_item;
 
-      saved_sym = sym;
-      saved_yypos = yypos;
-      saved_thislist = thislist;
-      saved_last_item = last_item;
+    saved_sym = sym;
+    saved_yypos = yypos;
+    saved_thislist = thislist;
+    saved_last_item = last_item;
 #endif
+    next_itemlist();
+    if (itemlist_empty) {
+      break;
+    }
+  } while (sym != eofsym);
+
+
+  if (itemlist_empty) {
+
+#if ERRPOSCORRECTION
+
+    /* switch off lookahead optimization and recompute
+     * last item lists
+     */
+
+    int p_saved_saved_yypos = saved_saved_yypos;
+    int p_saved_yypos = saved_yypos;
+    int p_yypos = yypos;
+    int p_lookaheadpos = lookaheadpos;
+
+    lookaheadswitchedoff = 1;
+
+    if (saved_thislist == initial_list) {
+      thislist = saved_thislist;
+      last_item = saved_last_item;
+    } else {
+      thislist = saved_saved_thislist;
+      last_item = saved_saved_last_item;
+      sym = saved_saved_sym;
       next_itemlist();
       if (itemlist_empty) {
-         break;
+        printf("-1-\n");
+        posforerrormsg = p_saved_saved_yypos;
+        syntaxerror();
       }
-   } while (sym != eofsym);
+    }
 
-
-   if (itemlist_empty) {
-
-#if ERRPOSCORRECTION
-
-      /* switch off lookahead optimization and recompute
-       * last item lists
-       */
-
-      int p_saved_saved_yypos = saved_saved_yypos;
-      int p_saved_yypos = saved_yypos;
-      int p_yypos = yypos;
-      int p_lookaheadpos = lookaheadpos;
-
-      lookaheadswitchedoff = 1;
-
-      if (saved_thislist == initial_list) {
-         thislist = saved_thislist;
-         last_item = saved_last_item;
-      }
-      else {
-         thislist = saved_saved_thislist;
-         last_item = saved_saved_last_item;
-         sym = saved_saved_sym;
-         next_itemlist();
-         if (itemlist_empty) {
-            printf("-1-\n");
-            posforerrormsg = p_saved_saved_yypos;
-            syntaxerror();
-         }
-      }
-
-      sym = saved_sym;
-      next_itemlist();
-      if (itemlist_empty) {
-         /*
-         printf("-2-\n");
-         */
-         posforerrormsg = p_saved_saved_yypos;
-         syntaxerror();
-      }
-
-      sym = lookaheadsym;
-      next_itemlist();
-      if (itemlist_empty) {
-         /*
-         printf("-3-\n");
-         */
-         posforerrormsg = p_saved_yypos;
-         syntaxerror();
-      }
-
-      printf("PROGRAM ERROR\n"); exit(1);
-#else
+    sym = saved_sym;
+    next_itemlist();
+    if (itemlist_empty) {
+      /*
+      printf("-2-\n");
+      */
+      posforerrormsg = p_saved_saved_yypos;
       syntaxerror();
+    }
+
+    sym = lookaheadsym;
+    next_itemlist();
+    if (itemlist_empty) {
+      /*
+      printf("-3-\n");
+      */
+      posforerrormsg = p_saved_yypos;
+      syntaxerror();
+    }
+
+    printf("PROGRAM ERROR\n");
+    exit(1);
+#else
+    syntaxerror();
 #endif
-   }
+  }
 }
 
 /*============================================================================*/
@@ -1406,47 +1377,46 @@ int stptr = 0;
 
 /*----------------------------------------------------------------------------*/
 
-PRIVATE push(n)
-   int n;
 /*
  * push item index n onto the stack
  */
-{
-   if (stptr == STACKSIZE-2) {
-      STACKSIZE += STACKINCR;
-      stack = (int *) realloc(stack, sizeof(int) * STACKSIZE);
-      if (! stack) yymallocerror();
-   }
-   stack[stptr++] = n;
+PRIVATE push(int n) {
+  if (stptr == STACKSIZE - 2) {
+    STACKSIZE += STACKINCR;
+    stack = (int *) realloc(stack, sizeof(int) * STACKSIZE);
+    if (! stack) {
+      yymallocerror();
+    }
+  }
+  stack[stptr++] = n;
 }
 
 /*----------------------------------------------------------------------------*/
 
-PRIVATE int pop()
 /*
  * pop an item index from the stack and return the value
  */
-{
-   stptr--;
-   return stack[stptr];
+PRIVATE int pop() {
+  stptr--;
+  return stack[stptr];
 }
 
 /*----------------------------------------------------------------------------*/
 
-PRIVATE init_stack()
 /*
  * Init stack
  * push index of 'item'
  */
-{ 
-   STACKSIZE = STACKINCR;
-   stack = (int *) malloc (sizeof(int) * STACKSIZE);
-   if (! stack) yymallocerror();
+PRIVATE init_stack() {
+  STACKSIZE = STACKINCR;
+  stack = (int *) malloc(sizeof(int) * STACKSIZE);
+  if (! stack) {
+    yymallocerror();
+  }
 }
 
 /*----------------------------------------------------------------------------*/
 
-PUBLIC int yyselect()
 /*
  * return the next rule number (for the left-derivation)
  *
@@ -1470,25 +1440,28 @@ PUBLIC int yyselect()
  * then the rule number is returned
  * subsequent calls will process the items
  * representing gamma
- * 
+ *
  */
-{
-   int i;
-   while (1) {
-      i = pop();
-      if (sub[i])  push(sub[i]);
-      if (left[i]) push(left[i]);
-      if (yygrammar[dot[i]] < 0 ) {
-	    return yygrammar[dot[i]+1];
-      }
-   }
+PUBLIC int yyselect() {
+  int i;
+  while (1) {
+    i = pop();
+    if (sub[i]) {
+      push(sub[i]);
+    }
+    if (left[i]) {
+      push(left[i]);
+    }
+    if (yygrammar[dot[i]] < 0) {
+      return yygrammar[dot[i] + 1];
+    }
+  }
 }
 
 /*============================================================================*/
 /* MAIN FUNCTION YYPARSE                                                      */
 /*============================================================================*/
 
-PUBLIC int yyparse()
 /*
  * main function of the parser
  *
@@ -1500,38 +1473,38 @@ PUBLIC int yyparse()
  * which in turn calls yyselect() to obtain the rule numbers
  * in the order of a left derivation
  */
-{
-   init_dirsets();
-   lookaheadsym = yylex()+term_base;
-   lookaheadpos = yypos;
-   first_lexval();
-   itemlist_sequence();
+PUBLIC int yyparse() {
+  init_dirsets();
+  lookaheadsym = yylex() + term_base;
+  lookaheadpos = yypos;
+  first_lexval();
+  itemlist_sequence();
 
 #if DYNAMICITEMS
-   free(back);
+  free(back);
 #endif
 
 #if PRINTTREE
-   print_tree(left[thislist]);
+  print_tree(left[thislist]);
 #endif
 
 #if WALK
-   /* item 'thislist'  represents the item
-    *    YYSTART : UserRoot EOF *
-    * i.e. the root of the derivation tree
-    */
-   init_stack();
-   push(thislist);
-   init_lexelem();
-   YYSTART();
+  /* item 'thislist'  represents the item
+   *    YYSTART : UserRoot EOF *
+   * i.e. the root of the derivation tree
+   */
+  init_stack();
+  push(thislist);
+  init_lexelem();
+  YYSTART();
 #endif
 
 #if DYNAMICITEMS
-free(dot);
-free(left);
-free(sub);
+  free(dot);
+  free(left);
+  free(sub);
 #endif
 
-   return 0;
+  return 0;
 }
 /*================================================================ THE END ===*/
