@@ -2,3 +2,4 @@
 accent/accent
 examples/exmplamber/amber
 examples/exmplaccent/calculator
+*.c.orig
