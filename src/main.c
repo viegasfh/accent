@@ -27,11 +27,7 @@ extern FILE *yyin;
 
 char *SourceFileName;
 
-main (argc, argv)
-   int argc;
-   char **argv;
-
-{
+void main (int argc, char **argv) {
    if (argc > 2) {
       printf("too many arguments\n");
       exit(1);
@@ -51,8 +47,6 @@ main (argc, argv)
    exit(0);
 }
 
-GetSourceFileName(ref_string)
-   char **ref_string;
-{
+void GetSourceFileName(char **ref_string) {
    *ref_string = SourceFileName;
 }

@@ -38,9 +38,7 @@ struct SET {
 
 PUBLIC int changed;
 
-PUBLIC void print_set(s)
-   set s;
-{
+PUBLIC void print_set(set s) {
    set p;
 
    p = s;
@@ -52,9 +50,7 @@ PUBLIC void print_set(s)
    printf(" }");
 }
 
-PUBLIC emit_set(s)
-   set s;
-{
+PUBLIC void emit_set(set s) {
    set p;
 
    p = s;
@@ -72,10 +68,7 @@ PUBLIC emit_set(s)
    Put(" }");
 }
 
-PUBLIC write_set(n, s)
-   int n;
-   set s;
-{
+PUBLIC void write_set(int n, set s) {
    set p;
 
    p = s;
@@ -95,10 +88,7 @@ PUBLIC set empty_set ()
    return 0;
 }
 
-PUBLIC void into_set_include_elem (ref_s, e)
-   set *ref_s;
-   int e;
-{
+PUBLIC void into_set_include_elem (set *ref_s, int e) {
    set p;
 
    /*
@@ -124,9 +114,7 @@ PUBLIC void into_set_include_elem (ref_s, e)
    changed = 1;
 }
 
-PUBLIC void into_set_include_set (ref_s, x)
-   set *ref_s, x;
-{
+PUBLIC void into_set_include_set (set *ref_s, set x) {
    set p;
    p = x;
    while(p) {

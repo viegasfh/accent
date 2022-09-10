@@ -21,19 +21,13 @@
  */
 
 
-POS_to_INT(pos, ref_number)
-   long pos;
-   long *ref_number;
-{
+void POS_to_INT(long pos, long *ref_number) {
    *ref_number = pos;
 }
 
 #define yyLCODE 1000L
 #define yyFCODE 1000000000L
 
-POS_to_LineNumber(pos, ref_number)
-   long pos;
-   long *ref_number;
-{
+void POS_to_LineNumber(long pos, long *ref_number) {
    *ref_number = (pos % yyFCODE) / yyLCODE;
 }

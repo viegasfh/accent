@@ -22,8 +22,7 @@ yyt yyhx;
 
 #define HEAPPIECE 20000
 
-yyExtend()
-{
+void yyExtend() {
    yyh = (yyt) malloc(HEAPPIECE * sizeof(long));
    yyhx = yyh + HEAPPIECE - 100;
    if (yyh == 0) {
@@ -59,15 +58,12 @@ static yyt NEWBLOCK()
    return p;
 }
 
-static FREEBLOCK (p)
-   yyt p;
-{
+static FREEBLOCK (yyt p) {
    *p = (long) FREELIST;
    FREELIST = p;
 }
 
-yyt yyAllocCntl(n)
-{
+yyt yyAllocCntl(n) {
    yyt p;
    p = CURPOS;
    CURPOS += n;
@@ -90,9 +86,7 @@ typedef struct {
    yyt curpos;
 } yysave;
 
-yyBeginChoice(ref_saved)
-   yysave *ref_saved;
-{
+void yyBeginChoice(yysave *ref_saved) {
    ref_saved->curblock = CURBLOCK;
    ref_saved->curpos = CURPOS;
    ref_saved->firstblock = FIRSTBLOCK;
@@ -103,9 +97,7 @@ yyBeginChoice(ref_saved)
    CURPOS = CURBLOCK + 1;
 }
 
-yyEndChoice(saved)
-   yysave saved;
-{
+void yyEndChoice(yysave saved) {
    yyt p;
 
    p = FIRSTBLOCK;
@@ -121,11 +113,7 @@ yyEndChoice(saved)
    FIRSTBLOCK = saved.firstblock;
 }
 
-yyAbort (Code, FileName, Line)
-   int Code;
-   char * FileName;
-   int Line;
-{
+yyAbort (int Code, char *FileName, int Line) {
    switch(Code) {
    case 1:
       printf ("Undefined value in \"%s.g\", line %d\n", FileName, Line);
@@ -147,35 +135,25 @@ yyAbort (Code, FileName, Line)
    }
 }
 
-yyPrintOpaque (i)
-   long i;
-{
+void yyPrintOpaque (long i) {
    printf("<<%d>>", i);
 }
 
-yyPrintIndex (i)
-   long i;
-{
+void yyPrintIndex (long i) {
    printf("#%d", i);
 }
 
-yyPrint_INT (i)
-   long i;
-{
+void yyPrint_INT (long i) {
    printf("%d", i);
 }
 
-yyPrint_POS (i)
-   long i;
-{
+void yyPrint_POS (long i) {
    printf("%d", i);
 }
 
 #define STRINGLENGTH 40
 
-yyPrint_STRING (Str)
-   char *Str;
-{
+void yyPrint_STRING (char *Str) {
    char OutBuf[STRINGLENGTH];
    char * OutBufPtr;
    OutBufPtr = &OutBuf[0];
@@ -217,8 +195,7 @@ yyPrint_STRING (Str)
 
 static long yyIndentation = 0;
 
-static yyIndent()
-{
+static void yyIndent() {
    int i;
 
    for (i = 1; i <= yyIndentation;  i++) {
@@ -226,38 +203,32 @@ static yyIndent()
    }
 }
 
-yyTerm(f)
-{
+void yyTerm(f) {
    printf("%s", f);
 }
 
-yyFirstArg()
-{
+void yyFirstArg() {
    printf("(\n");
    yyIndentation++;
    yyIndent();
 }
 
-yyNextArg()
-{
+void yyNextArg() {
    printf(",\n");
    yyIndent();
 }
 
-yyEndArgs()
-{
+void yyEndArgs() {
    yyIndentation--;
    printf("\n");
    yyIndent();
    printf(")");
 }
 
-yyNoArgs()
-{
+void yyNoArgs() {
    ;
 }
 
-yyEndPrint()
-{
+yyEndPrint() {
    printf("\n");
 }
