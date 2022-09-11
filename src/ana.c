@@ -69,7 +69,7 @@ PRIVATE int rulecount = 0;
 
 /*----------------------------------------------------------------------------*/
 
-PRIVATE mallocerror()
+PRIVATE void mallocerror()
 {
    printf("running out of memory\n");
    exit(1);
@@ -77,18 +77,14 @@ PRIVATE mallocerror()
 
 /*----------------------------------------------------------------------------*/
 
-PUBLIC get_rulecount(ref_n)
-   int *ref_n;
+PUBLIC void get_rulecount(int *ref_n)
 {
    *ref_n = rulecount;
 }
 
 /*----------------------------------------------------------------------------*/
 
-PUBLIC start_rule(n, ref_r)
-   int n;
-   int *ref_r;
-
+PUBLIC void start_rule(int n, int *ref_r)
 {
    rulelist lst;
    memberlist r;
@@ -123,7 +119,7 @@ PUBLIC start_rule(n, ref_r)
 
 /*----------------------------------------------------------------------------*/
 
-PRIVATE append_member(n)
+PRIVATE void append_member(n)
 {
    memberlist lst;
 
@@ -136,19 +132,19 @@ PRIVATE append_member(n)
    last_member_ptr = lst;
 }
 
-PUBLIC append_nonterm_member(n)
+PUBLIC void append_nonterm_member(n)
 {
    append_member(n);
 }
 
-PUBLIC append_token_member(n)
+PUBLIC void append_token_member(n)
 {
    append_member(- n);
 }
 
 /*----------------------------------------------------------------------------*/
 
-PRIVATE print_grammar()
+PRIVATE void print_grammar()
 {
    rulelist r;
    memberlist m;
@@ -179,7 +175,7 @@ PRIVATE set *FIRST;
 PRIVATE set *FOLLOW;
 PRIVATE set *DIRSET;
 
-PRIVATE allocate_arrays()
+PRIVATE void allocate_arrays()
 {
    TRANSPARENT = (int *) malloc (sizeof(int)*n_of_nonterms+1);
    if (! TRANSPARENT) mallocerror();
@@ -196,14 +192,14 @@ PRIVATE int true_change;
 
 /*----------------------------------------------------------------------------*/
 
-PUBLIC init_ana()
+PUBLIC void init_ana()
 {
    ;
 }
 
 /*----------------------------------------------------------------------------*/
 
-PUBLIC run_ana()
+PUBLIC void run_ana()
 {
    allocate_arrays();
 
@@ -455,25 +451,20 @@ PRIVATE void compute_dir ()
 
 /*----------------------------------------------------------------------------*/
 
-PUBLIC get_dirset(n, ref_s)
-   int n;
-   set *ref_s;
+PUBLIC get_dirset(int n, set *ref_s)
 {
    *ref_s = DIRSET[n];
 }
 
 /*----------------------------------------------------------------------------*/
 
-PUBLIC get_transparent(n, ref_val)
-   int n;
-   int *ref_val;
+PUBLIC get_transparent(int n, int *ref_val)
 {
    *ref_val = TRANSPARENT[n];
 }
 /*----------------------------------------------------------------------------*/
 
-PUBLIC get_max_char(ref_n)
-   int *ref_n;
+PUBLIC get_max_char(int *ref_n)
 {
    *ref_n = max_char;
 }

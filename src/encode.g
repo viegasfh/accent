@@ -175,13 +175,12 @@
    get_rulecount(-> Upb1)
    TABLEUPB2 -> Upb2
    Put("int TABLE[") PutI(Upb1+1) Put("][") PutI(Upb2+1) Put("];") Nl
-   Put("init_dirsets() {") Nl
+   Put("void init_dirsets() {") Nl
    write_dir_sets_LHSKEYS(LhsKeys)
    Put("}") Nl
    Nl
    Put("extern int yydirset();") Nl
-   Put("int yydirset(i,j)") Nl
-   Put("   int i,j;") Nl
+   Put("int yydirset(int i,int j)") Nl
    Put("{") Nl
    Put("   return TABLE[i][j];") Nl
    Put("}") Nl
@@ -605,8 +604,7 @@
 'action' write_transparent
 'rule' write_transparent
    LHS_List -> LhsKeys
-   Put("int yytransparent(n)") Nl
-   Put("   int n;") Nl
+   Put("int yytransparent(int n)") Nl
    Put("{") Nl
    Put("   switch(n) {") Nl
    write_transparent_LHSKEYS(LhsKeys,1)
@@ -709,8 +707,7 @@
 'action' write_printnames
 'rule' write_printnames
    LHS_List -> LhsKeys
-   Put("char * yyprintname(n)") Nl
-   Put("   int n;") Nl
+   Put("char * yyprintname(int n)") Nl
    Put("{") Nl
    term_base -> TERMBASE
    Put("   if (n <= ") PutI(TERMBASE)Put (")") Nl

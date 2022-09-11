@@ -108,6 +108,7 @@
 	 HasMeaning(Id -> nontermobj(_,_,FP))
 	 Nl
 	 id_to_string(Id -> Str)
+   Put("void ")
 	 Put(Str)
 	 Put(" (")
 	 handle_formal_params_1(FP)

@@ -57,12 +57,12 @@
       Put("   ") Nl
       Put("LEXELEM *first_lexelem, *cur_lexelem;") Nl
       Put("") Nl
-      Put("init_lexelem()") Nl
+      Put("void init_lexelem()") Nl
       Put("{") Nl
       Put("   cur_lexelem = first_lexelem;") Nl
       Put("}") Nl
       Put("") Nl
-      Put("first_lexval () {") Nl
+      Put("void first_lexval () {") Nl
       Put("   LEXELEM *p;") Nl
       Put("   p = (LEXELEM *)malloc(sizeof(LEXELEM));") Nl
       Put("   if (! p) yymallocerror();") Nl
@@ -74,7 +74,7 @@
       Put("   first_lexelem = p;") Nl
       Put("}") Nl
       Put("") Nl
-      Put("next_lexval() {") Nl
+      Put("void next_lexval() {") Nl
       Put("   LEXELEM *p;") Nl
       Put("   p = (LEXELEM *)malloc(sizeof(LEXELEM));") Nl
       Put("   if (! p) yymallocerror();") Nl
@@ -86,7 +86,7 @@
       Put("   cur_lexelem = p;") Nl
       Put("}") Nl
       Put("") Nl
-      Put("get_lexval() {") Nl
+      Put("void get_lexval() {") Nl
       Put("   extern int FREE_LEXELEMS;") Nl
       Put("   LEXELEM *p;") Nl -- xxx new
       Put("   yylval = cur_lexelem->val;") Nl
