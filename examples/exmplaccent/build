@@ -1,6 +1,6 @@
 #!/bin/sh
 
-ACCENT=../../accent/accent
+ACCENT=accent
 ENTIRE=../../entire/entire.c
 LEX=flex
 CC=cc
