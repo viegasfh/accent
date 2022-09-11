@@ -13,7 +13,7 @@
 /* Gentle Runtime System */
 
 char *THIS_RUNTIME_SYSTEM =
-"Gentle 3.0 01100401 (C) 1992, 1997";
+"Gentle 3.0 (C) 1992, 1997";
 
 typedef long * yyt;
 
